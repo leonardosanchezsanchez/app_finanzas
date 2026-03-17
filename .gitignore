@@ -1,0 +1,3 @@
+appenv/
+__pycache__/
+.streamlit/
