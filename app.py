@@ -1,135 +1,160 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Analizador Financiero Estudiantil", layout="wide")
+# CONFIGURACION DE PAGINA
+st.set_page_config(page_title="Ledgerly - Analisis Financiero", layout="centered")
 
-st.title("Sistema de Diagnostico Financiero")
-st.write("Analisis de habitos de consumo y salud economica estudiantil")
+# TITULO PRINCIPAL
+st.title("Ledgerly")
+st.write("Herramienta de Diagnostico y Analisis de Gastos Estudiantiles")
+st.write("")
 
-# --- SECCION 1: PERFIL DEL ESTUDIANTE ---
-with st.container():
-    st.header("1. Perfil General")
-    nombre = st.text_input("Ingresa tu nombre:")
+# --- SECCION 1: PERFIL GENERAL ---
+with st.container(border=True):
+    st.header("1. Datos Generales")
     
-    col_perfil1, col_perfil2, col_perfil3 = st.columns(3)
-    with col_perfil1:
-        tipo_ingreso = st.selectbox("¿Recibes ingresos propios?", 
-                                   ["No", "Si (trabajo)", "Si (mesada/apoyo familiar)"])
-        frecuencia = st.selectbox("¿Con que frecuencia recibes dinero?", 
-                                 ["Diario", "Semanal", "Quincenal", "Mensual", "No recibo"])
-    with col_perfil2:
-        monto_aprox = st.selectbox("¿Cuanto dinero recibes aproximadamente al mes?", 
-                                  ["$0-500", "$500-1000", "$1000-2000", "+$2000"])
-        registra_gasto = st.radio("¿Sueles registrar en que gastas tu dinero?", 
-                                 ["Siempre", "Aveces", "Nunca"], horizontal=True)
-    with col_perfil3:
-        saldo_actual = st.number_input("Monto disponible al dia de hoy:", min_value=0.0, step=10.0)
-        dias_faltantes = st.number_input("Dias restantes para el proximo ingreso:", min_value=1, step=1)
+    nombre = st.text_input("Ingresa tu nombre para el reporte:", placeholder="Ej. Leonardo Sanchez")
+    
+    st.write("")
+    tipo_ingreso = st.multiselect(
+        "¿De donde viene tu dinero?", 
+        ["Trabajo", "Mesada/Apoyo familiar", "Beca", "Emprendimiento propio"]
+    )
+    
+    st.write("")
+    monto_aprox = st.selectbox(
+        "¿Cuanto dinero recibes aproximadamente al mes?", 
+        ["$0-500", "$500-1000", "$1000-2000", "+$2000"]
+    )
+    
+    st.write("")
+    saldo_actual = st.number_input("Dinero que tienes disponible justo ahora (MXN):", min_value=0.0, step=10.0)
+    
+    st.write("")
+    frecuencia = st.selectbox("¿Cada cuanto recibes dinero?", ["Semanal", "Quincenal", "Mensual"])
+    
+    st.write("")
+    registra_gasto = st.radio("¿Llevas un registro de lo que vas gastando?", ["Siempre", "A veces", "Nunca"], horizontal=True)
+    
+    st.write("")
+    dias_faltantes = st.number_input("Dias que te faltan para volver a recibir dinero:", min_value=1, step=1)
 
-# --- SECCION 2: DESGLOSE DE GASTOS (Dinamico) ---
-st.header("2. Analisis de Gastos")
-categorias = st.multiselect("Selecciona las categorias de mayor gasto:", 
-                           ["Comida", "Transporte", "Entretenimiento", "Ropa", "Material Escolar", "Otros"])
+st.write("")
 
-diccionario_gastos = {}
-if categorias:
-    st.write("Desglose de gastos mensuales por concepto:")
-    cols_g = st.columns(len(categorias))
-    for i, cat in enumerate(categorias):
-        with cols_g[i]:
-            diccionario_gastos[cat] = st.number_input(f"Mensual en {cat}:", min_value=0.0, step=10.0)
+# --- SECCION 2: ANALISIS DE GASTOS ---
+with st.container(border=True):
+    st.header("2. Tus Gastos Principales")
+    st.write("Elige las categorias donde mas se te va el dinero:")
+    categorias = st.multiselect(
+        "Categorias:", 
+        ["Comida", "Transporte", "Entretenimiento", "Ropa", "Material Escolar", "Otros"]
+    )
+    
+    diccionario_gastos = {}
+    
+    if categorias:
+        st.write("---")
+        st.write("Escribe cuanto gastas al mes en cada una:")
+        cols_g = st.columns(len(categorias))
+        for i, cat in enumerate(categorias):
+            with cols_g[i]:
+                diccionario_gastos[cat] = st.number_input(f"{cat}:", min_value=0.0, step=10.0)
 
-# --- SECCION 3: HABITOS Y AHORRO ---
-st.header("3. Habitos de Ahorro")
-col_ahorro1, col_ahorro2 = st.columns(2)
+st.write("")
 
-with col_ahorro1:
-    se_queda_sin_dinero = st.selectbox("¿Te quedas sin dinero antes de que termine el periodo?", 
-                                      ["Siempre", "Aveces", "Nunca"])
-    ahorra = st.radio("¿Sueles ahorrar dinero?", ["Si", "Aveces", "No"], horizontal=True)
-
-with col_ahorro2:
+# --- SECCION 3: HABITOS DE AHORRO ---
+with st.container(border=True):
+    st.header("3. Cultura de Ahorro")
+    
+    se_queda_sin_dinero = st.selectbox(
+        "¿Te pasa que te quedas sin un peso antes de que termine la semana o el mes?", 
+        ["Siempre", "A veces", "Nunca"]
+    )
+    
+    st.write("")
+    ahorra = st.radio("¿Sueles guardar dinero para el futuro?", ["Si", "A veces", "No"], horizontal=True)
+    
     if ahorra != "No":
-        para_que_ahorra = st.selectbox("Finalidad del ahorro:", 
-                                      ["Emergencias", "Comprar algo especifico", "Viajes", "Otro"])
+        st.write("")
+        para_que_ahorra = st.selectbox(
+            "¿Cual es el objetivo de ese ahorro?", 
+            ["Emergencias", "Comprar algo especial", "Viajes", "Inversion/Otro"]
+        )
     else:
-        st.write("Actualmente no se reporta cultura de ahorro.")
+        st.caption("No se reporta ningun habito de ahorro actualmente.")
 
-# --- SECCION 4: DIAGNOSTICO, GRAFICAS Y ANALISIS ---
-if st.button("Generar Analisis"):
+st.write("")
+
+# --- SECCION 4: RESULTADOS Y ANALISIS ---
+if st.button("GENERAR MI ANALISIS", use_container_width=True):
     st.divider()
-    st.subheader(f"Reporte Financiero: {nombre}")
+    st.subheader(f"Reporte Financiero Personal: {nombre}")
     
+    # CALCULOS TECNICOS
     total_gastos = sum(diccionario_gastos.values())
     valores_ingreso = {"$0-500": 500, "$500-1000": 1000, "$1000-2000": 2000, "+$2000": 3000}
     ingreso_num = valores_ingreso[monto_aprox]
     presupuesto_diario = saldo_actual / dias_faltantes if dias_faltantes > 0 else 0
     
-    # --- VISUALIZACION ---
-    st.write("### Graficas de Comportamiento")
+    # VISUALIZACION DE DATOS
+    st.write("### Graficas de tu situacion")
     g1, g2, g3 = st.columns(3)
 
     with g1:
-        st.write("Distribucion de Gastos")
+        st.write("**En que gastas**")
         if diccionario_gastos:
             df_gastos = pd.DataFrame(list(diccionario_gastos.items()), columns=['Categoria', 'Monto'])
             st.bar_chart(data=df_gastos, x='Categoria', y='Monto')
     
     with g2:
-        st.write("Balance Ingresos vs Gastos")
+        st.write("**Gasto vs Disponible**")
         datos_resumen = pd.DataFrame({
             'Estado': ['Gastos', 'Disponible'],
             'Monto': [total_gastos, max(0, ingreso_num - total_gastos)]
         })
-        st.area_chart(datos_resumen.set_index('Estado'))
+        st.bar_chart(data=datos_resumen, x='Estado', y='Monto')
 
     with g3:
-        st.write("Proyeccion de Ahorro Acumulado")
-        ahorro_mensual_ideal = ingreso_num * 0.15
+        st.write("**Meta Ahorro (20%)**")
+        ahorro_mensual_ideal = ingreso_num * 0.20
         meses = ["Mes 1", "Mes 2", "Mes 3", "Mes 4", "Mes 5", "Mes 6"]
         progreso = [ahorro_mensual_ideal * i for i in range(1, 7)]
         st.line_chart(pd.DataFrame(progreso, index=meses))
 
-    # --- SECCION DE ANALISIS COMPLEJO ---
-    st.divider()
-    st.header("Analisis de Situacion Financiera")
+    # --- ANALISIS DETALLADO ---
+    st.write("---")
+    st.write("### Revision de tu Situacion Financiera")
     
-    analisis_col1, analisis_col2 = st.columns(2)
+    # Evaluacion Cuantitativa
+    st.write("**Revision de tus numeros:**")
+    st.write(f"Segun lo que nos contaste, tienes **${presupuesto_diario:.2f}** para gastar cada dia y poder aguantar los {dias_faltantes} dias que te faltan para volver a tener dinero.")
     
-    with analisis_col1:
-        st.write("### Evaluacion Cuantitativa")
-        st.write(f"A partir de los datos proporcionados, se observa que el usuario cuenta con una liquidez diaria de **${presupuesto_diario:.2f}** para cubrir sus necesidades durante los proximos **{dias_faltantes}** dias.")
-        
-        # Logica de analisis de solvencia
-        if total_gastos > ingreso_num:
-            st.write("Se detecta un deficit financiero: los gastos mensuales reportados superan el ingreso promedio. Esta situacion sugiere una dependencia de prestamos o una subestimacion de los ingresos reales.")
-        else:
-            porcentaje_disponible = ((ingreso_num - total_gastos) / ingreso_num) * 100
-            st.write(f"El usuario mantiene un margen de solvencia del **{porcentaje_disponible:.1f}%** sobre su ingreso mensual. Este excedente es positivo, pero su gestion dependera de la disciplina en los gastos variables.")
+    if total_gastos > ingreso_num:
+        st.write("Ojo aqui: tus gastos mensuales son mas altos que lo que estas recibiendo. Esto es una señal de alerta porque significa que estas usando dinero que no tienes o que estas pidiendo prestado para cubrir el mes.")
+    else:
+        porcentaje_disponible = ((ingreso_num - total_gastos) / ingreso_num) * 100
+        st.write(f"Te queda un margen libre del **{porcentaje_disponible:.1f}%** de tus ingresos. Esto es bueno porque significa que tu nivel de vida es sostenible con lo que ganas actualmente.")
 
-    with analisis_col2:
-        st.write("### Diagnostico de Comportamiento")
-        if se_queda_sin_dinero == "Siempre" or se_queda_sin_dinero == "Aveces":
-            st.write("Existe una falta de correlacion entre el flujo de efectivo y el consumo. El hecho de agotar el capital antes de finalizar el periodo indica que no se estan priorizando los gastos fijos sobre los variables.")
-        
-        if registra_gasto == "Nunca":
-            st.write("La ausencia de registros financieros impide la identificacion de fugas de capital o 'gastos hormiga', lo que dificulta la planeacion a mediano plazo.")
-
-    # --- CONSEJOS DERIVADOS DEL ANALISIS ---
-    st.header("Propuesta de Optimizacion")
+    st.write("")
     
-    cons_col1, cons_col2 = st.columns(2)
+    # Diagnostico de Comportamiento
+    st.write("**Analisis de tus habitos:**")
+    if se_queda_sin_dinero in ["Siempre", "A veces"]:
+        st.write("El hecho de que te quedes sin dinero antes de tiempo indica que no hay un orden real entre lo que ganas y lo que consumes. Parece que estas gastando mas en cosas variables antes de asegurar los gastos que realmente importan.")
     
-    with cons_col1:
-        st.write("**Estrategia de flujo de efectivo:**")
-        st.write(f"Se recomienda ajustar el gasto diario a un maximo de **${presupuesto_diario * 0.8:.2f}**, reservando el 20% restante como fondo de maniobra para imprevistos escolares o personales.")
-        
-        st.write("**Gestion de categorias:**")
-        st.write("Si el gasto en transporte o comida es elevado, se sugiere buscar alternativas de consumo local o rutas de transporte optimizadas para reducir el impacto en la liquidez semanal.")
+    if registra_gasto == "Nunca":
+        st.write("Al no anotar en que se te va el dinero, es muy probable que tengas 'gastos hormiga' que estan vaciando tu cartera sin que te des cuenta. Sin un registro, es casi imposible saber por donde se esta escapando tu capital.")
 
-    with cons_col2:
-        st.write("**Plan de Ahorro:**")
-        st.write(f"Para estabilizar las finanzas, se propone un ahorro objetivo de **${ingreso_num * 0.10:.2f}** mensuales (10% del ingreso). Este capital deberia ser depositado en un fondo separado inmediatamente al recibir el ingreso para evitar la tentacion de consumo.")
-        
-        st.write("**Control de presupuesto:**")
-        st.write("Es indispensable implementar una bitacora de egresos. Identificar y reducir los gastos en entretenimiento o ropa durante periodos de baja liquidez permitira llegar al final del ciclo con saldo positivo.")
+    st.write("")
+    
+    # Propuesta de Optimización
+    st.write("### Recomendaciones para mejorar")
+    
+    st.write("**Plan de gasto diario:**")
+    st.write(f"Te recomendamos que intentes gastar maximo **${presupuesto_diario * 0.8:.2f}** al dia. Ese 20% de diferencia que te sobra usalo como un colchon de seguridad por si surge algun imprevisto en la escuela o con tus amigos.")
+    
+    st.write("**Meta de ahorro sugerida:**")
+    st.write(f"Para que tus finanzas esten sanas, intenta ahorrar al menos **${ingreso_num * 0.10:.2f}** cada mes. El truco es separar este dinero en cuanto lo recibas, asi no sentiras la tentacion de gastartelo en cosas innecesarias.")
+
+    if "Comida" in diccionario_gastos or "Transporte" in diccionario_gastos:
+        st.write("**Sobre tus gastos fuertes:** Como tus gastos mas grandes estan en comida o transporte, te conviene checar si puedes cocinar mas en casa o buscar rutas mas baratas. Cualquier ahorro pequeño en estas categorias hara una gran diferencia al final de la semana.")
