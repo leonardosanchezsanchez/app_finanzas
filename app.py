@@ -150,8 +150,97 @@ elif st.session_state.pagina == 'invitado':
         st.write(f"Intenta ahorrar al menos **${ingreso_num * 0.10:.2f}** cada mes.")
 
 elif st.session_state.pagina == 'login':
-    if st.button("Volver"):
+    if st.button("Volver", key="btn_login_regresar"):
         st.session_state.pagina = 'bienvenida'
         st.rerun()
+
     st.title("Acceso a Ledgerly")
-    st.write("Aqui desarrollaremos el sistema de registro pronto.")
+    
+    tab1, tab2 = st.tabs(["Iniciar Sesion", "Registrarme"])
+
+    with tab1:
+        st.subheader("Bienvenido de nuevo")
+        user_login = st.text_input("Usuario", key="login_user_input")
+        pass_login = st.text_input("Contrasena", type="password", key="login_pass_input")
+        
+        if st.button("Entrar", key="btn_validar_login"):
+            if user_login and pass_login:
+                from base_de_datos import validar_login
+                usuario_valido = validar_login(user_login, pass_login)
+                
+                if usuario_valido:
+                    st.session_state.usuario_id = usuario_valido[0]
+                    st.session_state.usuario_actual = usuario_valido[1]
+                    st.success(f"Hola de nuevo, {user_login}")
+                    st.session_state.pagina = 'formulario_inicial'
+                    st.rerun()
+                else:
+                    st.error("Usuario o contrasena incorrectos.")
+            else:
+                st.warning("Escribe tus datos para entrar.")
+
+    with tab2:
+        st.subheader("Crea tu cuenta")
+        st.write("Registra un usuario unico para empezar a trackear tus gastos.")
+        
+        nuevo_usuario = st.text_input("Elige un nombre de usuario", key="reg_user_input")
+        nueva_password = st.text_input("Crea una contrasena", type="password", key="reg_pass_input")
+        
+        if st.button("Registrarme", key="btn_crear_cuenta"):
+            if nuevo_usuario and nueva_password:
+                from base_de_datos import registrar_usuario
+                if registrar_usuario(nuevo_usuario, nueva_password):
+                    st.success("Usuario creado con exito. Ahora ve a la pestana de Iniciar Sesion.")
+                else:
+                    st.error("Ese nombre de usuario ya esta ocupado.")
+            else:
+                st.warning("Por favor rellena todos los campos.")
+
+elif st.session_state.pagina == 'formulario_inicial':
+    st.title("Configuracion de Perfil Financiero")
+    st.write(f"Hola {st.session_state.usuario_actual}, responde esto para personalizar tu experiencia.")
+
+    nombre_real = st.text_input("¿Cual es tu nombre?", key="form_nombre")
+    periodo = st.selectbox("¿Cada cuanto recibes dinero?", ["Semanal", "Quincenal", "Mensual"], key="form_periodo")
+    monto_ingreso = st.number_input(f"¿Cuanto recibes de forma {periodo}?", min_value=0.0, step=50.0, key="form_monto")
+    
+    fuentes = st.multiselect("¿Como recibes ese dinero?", 
+                             ["Mesada / Apoyo familiar", "Trabajo", "Beca", "Otros"], key="form_fuentes")
+    
+    st.subheader("Tus Gastos")
+    categorias = st.multiselect("¿En que gastas mas dinero?", 
+                                ["Transporte", "Comida", "Ropa", "Entretenimiento", "Belleza", "Gasolina", "Otros"], key="form_cats")
+    
+    gastos_estimados = {}
+    for cat in categorias:
+        gastos_estimados[cat] = st.number_input(f"¿Cuanto gastas aproximadamente en {cat}?", min_value=0.0, key=f"gasto_{cat}")
+
+    st.subheader("Estado Actual")
+    saldo_cartera = st.number_input("¿Cuanto dinero tienes actualmente en tu cartera?", min_value=0.0, key="form_saldo")
+    dias_para_pago = st.number_input("¿Cuantos dias faltan para tu proximo pago?", min_value=0, max_value=31, key="form_dias")
+
+    ahorra = st.radio("¿Ahorras dinero?", ["No", "Si"], key="form_ahorra")
+    meta_ahorro = ""
+    monto_ahorro = 0.0
+
+    if ahorra == "Si":
+        meta_ahorro = st.text_input("¿Para que estas ahorrando?", key="form_meta")
+        monto_ahorro = st.number_input("¿Cuanto de tu ingreso destinas al ahorro?", min_value=0.0, key="form_monto_ahorro")
+
+    if st.button("Finalizar Registro", key="btn_finalizar_todo"):
+        if nombre_real and fuentes:
+            st.session_state.perfil_completo = {
+                "nombre": nombre_real,
+                "periodo": periodo,
+                "monto": monto_ingreso,
+                "fuentes": fuentes,
+                "gastos_fijos": gastos_estimados,
+                "saldo_actual": saldo_cartera,
+                "dias_faltantes": dias_para_pago,
+                "meta_ahorro": meta_ahorro,
+                "ahorro_monto": monto_ahorro
+            }
+            st.success("¡Perfil guardado! Ahora ya puedes empezar a registrar tus gastos diarios.")
+            # Aqui despues pondremos el salto al Dashboard
+        else:
+            st.warning("Por favor, llena los campos principales.")
