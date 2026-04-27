@@ -227,20 +227,87 @@ elif st.session_state.pagina == 'formulario_inicial':
         meta_ahorro = st.text_input("¿Para que estas ahorrando?", key="form_meta")
         monto_ahorro = st.number_input("¿Cuanto de tu ingreso destinas al ahorro?", min_value=0.0, key="form_monto_ahorro")
 
-    if st.button("Finalizar Registro", key="btn_finalizar_todo"):
+    # ESTO VA AL FINAL DE TU FORMULARIO
+    if st.button("Finalizar Registro y Ver Análisis", key="btn_finalizar_todo"):
         if nombre_real and fuentes:
-            st.session_state.perfil_completo = {
-                "nombre": nombre_real,
-                "periodo": periodo,
-                "monto": monto_ingreso,
-                "fuentes": fuentes,
-                "gastos_fijos": gastos_estimados,
-                "saldo_actual": saldo_cartera,
-                "dias_faltantes": dias_para_pago,
-                "meta_ahorro": meta_ahorro,
-                "ahorro_monto": monto_ahorro
+            # --- 1. CÁLCULOS LÓGICOS ---
+            total_gastos_fijos = sum(gastos_estimados.values())
+            balance_disponible = monto_ingreso - total_gastos_fijos - monto_ahorro
+            
+            # Cálculo de supervivencia diaria
+            # Usamos los días que faltan para el pago que el usuario puso antes
+            presupuesto_diario = round(balance_disponible / dias_para_pago, 2) if dias_para_pago > 0 else 0
+
+            # Proyección a 6 meses: (Ahorro actual + un 20% extra del ingreso) * 6 meses
+            ahorro_extra_sugerido = monto_ingreso * 0.20
+            total_6_meses = (monto_ahorro + ahorro_extra_sugerido) * 6
+
+            # --- 2. EL ANÁLISIS COMPLEJO (VISUAL) ---
+            st.divider()
+            st.header(f"📈 Reporte de Inteligencia Financiera para {nombre_real}")
+
+            # Bloque de Gasto Diario
+            st.subheader("🚀 Guía de Gastos de Supervivencia")
+            if balance_disponible > 0:
+                st.info(f"""
+                **Tu Presupuesto Diario:** Para llegar con dinero a tu próximo pago en **{dias_para_pago} días**, 
+                te recomendamos no gastar más de **${presupuesto_diario}** diarios en gustos o extras.
+                """)
+            else:
+                st.error(f"🚨 **Cuidado:** Tus compromisos superan tus ingresos por ${abs(balance_disponible)}. No tienes presupuesto diario disponible.")
+
+            # Bloque de Proyección
+            st.subheader("💰 ¿Qué pasaría si ahorras un 20% más?")
+            col_a, col_b = st.columns(2)
+            col_a.metric("Ahorro Actual", f"${monto_ahorro}")
+            col_b.metric("Meta Sugerida (20%)", f"+${ahorro_extra_sugerido:,.0f}")
+            
+            st.write(f"Si haces este ajuste, en **6 meses** habrás acumulado **${total_6_meses:,.2f}**. "
+                     f"Esto sería clave para tu meta de: *{meta_ahorro if meta_ahorro else 'tu futuro'}*.")
+
+            # --- 3. GRÁFICA (LA QUE YA TE GUSTÓ) ---
+            import plotly.express as px
+            datos_pie = {
+                "Concepto": list(gastos_estimados.keys()) + ["Ahorro", "Libre"],
+                "Monto": list(gastos_estimados.values()) + [monto_ahorro, max(0, balance_disponible)]
             }
-            st.success("¡Perfil guardado! Ahora ya puedes empezar a registrar tus gastos diarios.")
-            # Aqui despues pondremos el salto al Dashboard
-        else:
-            st.warning("Por favor, llena los campos principales.")
+            fig = px.pie(datos_pie, values='Monto', names='Concepto', hole=0.5, 
+                         color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig, use_container_width=True)
+
+            # --- 4. DIAGNÓSTICO DE MEJORA ---
+            st.subheader("🏥 Diagnóstico y Mejora")
+            porcentaje_fijos = (total_gastos_fijos / monto_ingreso) * 100
+
+            if porcentaje_fijos <= 50:
+                st.success("**Situación: Excelente.** Tienes un control muy bueno.")
+                st.write("👉 **Mejora:** Podrías invertir ese excedente en un fondo de inversión o adelantar pagos de deudas si las tienes.")
+            elif 50 < porcentaje_fijos <= 80:
+                st.warning("**Situación: Estable pero en riesgo.**")
+                # Buscamos la categoría donde más gasta para darle el consejo
+                cat_mayor = max(gastos_estimados, key=gastos_estimados.get) if gastos_estimados else "N/A"
+                st.write(f"👉 **Mejora:** Intenta reducir un 10% en **{cat_mayor}**. Eso liberará flujo de caja para tus ahorros.")
+            else:
+                st.error("**Situación: Crítica.** Estás viviendo al límite.")
+                st.write("👉 **Mejora:** Es urgente recortar suscripciones o gastos variables. Tu prioridad debe ser bajar tus gastos fijos al 70%.")
+
+            # --- 5. PREGUNTA FINAL DE INTENCIÓN ---
+            st.divider()
+            st.subheader("🎯 Ahora, ¿cómo quieres que trabajemos?")
+            objetivo = st.selectbox(
+                "Selecciona tu prioridad para este ciclo:",
+                ["Solo registrar gastos (Control)", 
+                 "Administrar para mi meta (Ahorro)", 
+                 "Ayuda para no quedarme sin dinero (Supervivencia)"]
+            )
+
+            if st.button("🚀 Confirmar Plan e Ir a mi Registro Diario"):
+                # Guardamos todo para el Dashboard
+                st.session_state.perfil_completo = {
+                    "nombre": nombre_real,
+                    "presupuesto_diario": presupuesto_diario,
+                    "objetivo": objetivo,
+                    "balance_libre": balance_disponible
+                }
+                st.session_state.pagina = 'dashboard'
+                st.rerun()
