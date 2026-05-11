@@ -301,19 +301,35 @@ elif st.session_state.pagina == 'formulario_inicial':
                  "Ayuda para no quedarme sin dinero (Supervivencia)"]
             )
 
-            # ========================================================
+            if st.button("Confirmar Plan e Ir a mi Registro Diario"):
+                # Guardamos los datos para que no se borren
+                st.session_state.perfil_completo = {
+                    "nombre": nombre_real,
+                    "presupuesto_diario": presupuesto_diario,
+                    "objetivo": objetivo,
+                    "balance_libre": balance_disponible
+                }
+                
+                # Decidimos a qué página saltar
+                if objetivo == "Ayuda para no quedarme sin dinero (Supervivencia)":
+                    st.session_state.pagina = 'config_supervivencia'
+                else:
+                    st.session_state.pagina = 'dashboard'
+                
+                st.rerun()
+
+# ========================================================
 # PÁGINA 6: CONFIGURACIÓN DE ESCUDO (NECESIDADES)
 # ========================================================
 elif st.session_state.pagina == 'config_supervivencia':
-    st.title(" Configuración del Escudo de Supervivencia")
-    st.write("Para que Ledgerly sepa qué es un **Gasto Hormiga**, primero dinos qué es vital para ti.")
-    st.info("Marca las categorías que consideras **NECESIDADES** (Ej. Pasajes, Comida base).")
+    st.title(" Configuración del Escudo")
+    st.write(f"Hola {st.session_state.usuario_actual}, para detectar tus **Gastos Hormiga**, dinos qué es vital.")
+    st.info("Marca las categorías que consideras **NECESIDADES** (Pasajes, comida base, etc).")
     
-    # Usamos las categorías que el usuario eligió en el formulario inicial
+    # Recuperamos las categorías del formulario anterior
     cats_perfil = st.session_state.form_cats
     necesidades_seleccionadas = []
     
-    # Creamos un diseño de columnas para los checkboxes
     col_check1, col_check2 = st.columns(2)
     for i, c in enumerate(cats_perfil):
         with col_check1 if i % 2 == 0 else col_check2:
@@ -323,8 +339,7 @@ elif st.session_state.pagina == 'config_supervivencia':
     if st.button(" INICIAR MI CICLO DE 30 DÍAS", use_container_width=True):
         if necesidades_seleccionadas:
             st.session_state.lista_blanca = necesidades_seleccionadas
-            # Inicializamos el presupuesto dinámico
-            st.session_state.presupuesto_hoy = st.session_state.perfil_completo['presupuesto_diario']
+            # Inicializamos variables del ciclo
             st.session_state.gastos_totales_dia = 0.0
             st.session_state.hormigas_acumuladas = 0.0
             st.session_state.pagina = 'ciclo_diario'
@@ -336,74 +351,43 @@ elif st.session_state.pagina == 'config_supervivencia':
 # PÁGINA 7: EL CICLO DIARIO (REGISTRO CÍCLICO)
 # ========================================================
 elif st.session_state.pagina == 'ciclo_diario':
-    # Encabezado Personalizado
-    st.header(f"Hola, {st.session_state.perfil_completo['nombre']} ")
+    st.header(f"Hola, {st.session_state.perfil_completo['nombre']} 👋")
     
-    # MÉTRICAS EN TIEMPO REAL
+    # MÉTRICAS
     m1, m2, m3 = st.columns(3)
-    m1.metric("Límite para Hoy", f"${st.session_state.perfil_completo['presupuesto_diario']:.2f}")
-    m2.metric("Gastado", f"${st.session_state.gastos_totales_dia:.2f}", delta=f"-{st.session_state.gastos_totales_dia}", delta_color="inverse")
-    m3.metric("Fuga Hormiga", f"${st.session_state.hormigas_acumuladas:.2f}", help="Dinero gastado en categorías no esenciales.")
+    pd_inicial = st.session_state.perfil_completo['presupuesto_diario']
+    m1.metric("Límite para Hoy", f"${pd_inicial:.2f}")
+    m2.metric("Gastado", f"${st.session_state.gastos_totales_dia:.2f}")
+    m3.metric("Fuga Hormiga", f"${st.session_state.hormigas_acumuladas:.2f}")
 
     st.divider()
 
-    # FORMULARIO DE REGISTRO
     st.subheader(" Registrar Gasto")
     with st.container(border=True):
         c1, c2 = st.columns([2, 1])
         with c1:
-            concepto = st.text_input("¿En qué gastaste?", placeholder="Ej. Tacos, Café, Camión...")
-            cat_gasto = st.selectbox("Categoría del gasto:", st.session_state.form_cats)
+            concepto = st.text_input("¿En qué gastaste?", placeholder="Ej. Tacos, Café...")
+            cat_gasto = st.selectbox("Categoría:", st.session_state.form_cats)
         with c2:
-            monto = st.number_input("Monto (MXN):", min_value=0.0, step=5.0)
+            monto = st.number_input("Monto:", min_value=0.0, step=5.0)
 
-    if st.button("REGISTRAR Y ANALIZAR", use_container_width=True):
+    if st.button(" REGISTRAR Y ANALIZAR", use_container_width=True):
         if concepto and monto > 0:
-            # LÓGICA DE CLASIFICACIÓN
             st.session_state.gastos_totales_dia += monto
-            
             if cat_gasto in st.session_state.lista_blanca:
-                st.success(f"Gasto registrado: **{concepto}** (${monto}) es una Necesidad.")
+                st.success(f"Registrado como Necesidad.")
             else:
                 st.session_state.hormigas_acumuladas += monto
-                st.warning(f"**GASTO HORMIGA:** {concepto} no es vital. Has tirado ${monto} hoy.")
+                st.warning(f"Gasto Hormiga detectado.")
             
-            # RECALCULAR PRESUPUESTO RESTANTE
-            restante = st.session_state.perfil_completo['presupuesto_diario'] - st.session_state.gastos_totales_dia
-            
+            restante = pd_inicial - st.session_state.gastos_totales_dia
             if restante < 0:
-                st.error(f"¡TE PASASTE! Has excedido tu límite diario por ${abs(restante):.2f}")
+                st.error(f"Te pasaste por ${abs(restante):.2f}")
             else:
-                st.info(f"Aún tienes **${restante:.2f}** disponibles para el resto del día.")
+                st.info(f"Te quedan ${restante:.2f}")
         else:
-            st.warning("Escribe qué compraste y cuánto costó.")
+            st.warning("Completa los datos del gasto.")
 
-    # ANÁLISIS DE SUPERVIVENCIA (DINÁMICO)
-    st.write("---")
-    st.subheader("Análisis de Supervivencia")
-    
-    if st.session_state.gastos_totales_dia > 0:
-        porcentaje_hormiga = (st.session_state.hormigas_acumuladas / st.session_state.gastos_totales_dia) * 100
-        
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.write("**Calidad de Gasto:**")
-            if porcentaje_hormiga < 20:
-                st.write(" **Excelente:** La mayoría es gasto necesario.")
-            elif 20 <= porcentaje_hormiga < 50:
-                st.write(" **Cuidado:** Tus hormigas están creciendo.")
-            else:
-                st.write(" **Crítico:** Estás gastando más en gustos que en vivir.")
-        
-        with col_b:
-            # Gráfica rápida de pastel del día
-            df_dia = pd.DataFrame({
-                'Tipo': ['Necesidades', 'Hormigas'],
-                'Monto': [st.session_state.gastos_totales_dia - st.session_state.hormigas_acumuladas, st.session_state.hormigas_acumuladas]
-            })
-            st.bar_chart(data=df_dia, x='Tipo', y='Monto', height=200)
-
-    # BOTÓN PARA CERRAR DÍA (Simulación de ciclo)
     if st.button("🏁 Terminar Día y Guardar"):
         st.balloons()
-        st.success("Día 1 guardado. ¡Faltan 29 días para tu análisis final!")
+        st.success("Día guardado correctamente.")
