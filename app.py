@@ -244,20 +244,20 @@ elif st.session_state.pagina == 'formulario_inicial':
 
             # --- 2. EL ANÁLISIS COMPLEJO (VISUAL) ---
             st.divider()
-            st.header(f"📈 Reporte de Inteligencia Financiera para {nombre_real}")
+            st.header(f" Reporte de Inteligencia Financiera para {nombre_real}")
 
             # Bloque de Gasto Diario
-            st.subheader("🚀 Guía de Gastos de Supervivencia")
+            st.subheader(" Guía de Gastos de Supervivencia")
             if balance_disponible > 0:
                 st.info(f"""
                 **Tu Presupuesto Diario:** Para llegar con dinero a tu próximo pago en **{dias_para_pago} días**, 
                 te recomendamos no gastar más de **${presupuesto_diario}** diarios en gustos o extras.
                 """)
             else:
-                st.error(f"🚨 **Cuidado:** Tus compromisos superan tus ingresos por ${abs(balance_disponible)}. No tienes presupuesto diario disponible.")
+                st.error(f" **Cuidado:** Tus compromisos superan tus ingresos por ${abs(balance_disponible)}. No tienes presupuesto diario disponible.")
 
             # Bloque de Proyección
-            st.subheader("💰 ¿Qué pasaría si ahorras un 20% más?")
+            st.subheader(" ¿Qué pasaría si ahorras un 20% más?")
             col_a, col_b = st.columns(2)
             col_a.metric("Ahorro Actual", f"${monto_ahorro}")
             col_b.metric("Meta Sugerida (20%)", f"+${ahorro_extra_sugerido:,.0f}")
@@ -265,7 +265,7 @@ elif st.session_state.pagina == 'formulario_inicial':
             st.write(f"Si haces este ajuste, en **6 meses** habrás acumulado **${total_6_meses:,.2f}**. "
                      f"Esto sería clave para tu meta de: *{meta_ahorro if meta_ahorro else 'tu futuro'}*.")
 
-            # --- 3. GRÁFICA (LA QUE YA TE GUSTÓ) ---
+            # --- 3. GRÁFICA  ---
             import plotly.express as px
             datos_pie = {
                 "Concepto": list(gastos_estimados.keys()) + ["Ahorro", "Libre"],
@@ -276,24 +276,24 @@ elif st.session_state.pagina == 'formulario_inicial':
             st.plotly_chart(fig, use_container_width=True)
 
             # --- 4. DIAGNÓSTICO DE MEJORA ---
-            st.subheader("🏥 Diagnóstico y Mejora")
+            st.subheader("Diagnóstico y Mejora")
             porcentaje_fijos = (total_gastos_fijos / monto_ingreso) * 100
 
             if porcentaje_fijos <= 50:
                 st.success("**Situación: Excelente.** Tienes un control muy bueno.")
-                st.write("👉 **Mejora:** Podrías invertir ese excedente en un fondo de inversión o adelantar pagos de deudas si las tienes.")
+                st.write(" **Mejora:** Podrías invertir ese excedente en un fondo de inversión o adelantar pagos de deudas si las tienes.")
             elif 50 < porcentaje_fijos <= 80:
                 st.warning("**Situación: Estable pero en riesgo.**")
                 # Buscamos la categoría donde más gasta para darle el consejo
                 cat_mayor = max(gastos_estimados, key=gastos_estimados.get) if gastos_estimados else "N/A"
-                st.write(f"👉 **Mejora:** Intenta reducir un 10% en **{cat_mayor}**. Eso liberará flujo de caja para tus ahorros.")
+                st.write(f"**Mejora:** Intenta reducir un 10% en **{cat_mayor}**. Eso liberará flujo de caja para tus ahorros.")
             else:
                 st.error("**Situación: Crítica.** Estás viviendo al límite.")
-                st.write("👉 **Mejora:** Es urgente recortar suscripciones o gastos variables. Tu prioridad debe ser bajar tus gastos fijos al 70%.")
+                st.write(" **Mejora:** Es urgente recortar suscripciones o gastos variables. Tu prioridad debe ser bajar tus gastos fijos al 70%.")
 
             # --- 5. PREGUNTA FINAL DE INTENCIÓN ---
             st.divider()
-            st.subheader("🎯 Ahora, ¿cómo quieres que trabajemos?")
+            st.subheader("Ahora, ¿cómo quieres que trabajemos?")
             objetivo = st.selectbox(
                 "Selecciona tu prioridad para este ciclo:",
                 ["Solo registrar gastos (Control)", 
@@ -301,13 +301,109 @@ elif st.session_state.pagina == 'formulario_inicial':
                  "Ayuda para no quedarme sin dinero (Supervivencia)"]
             )
 
-            if st.button("🚀 Confirmar Plan e Ir a mi Registro Diario"):
-                # Guardamos todo para el Dashboard
-                st.session_state.perfil_completo = {
-                    "nombre": nombre_real,
-                    "presupuesto_diario": presupuesto_diario,
-                    "objetivo": objetivo,
-                    "balance_libre": balance_disponible
-                }
-                st.session_state.pagina = 'dashboard'
-                st.rerun()
+            # ========================================================
+# PÁGINA 6: CONFIGURACIÓN DE ESCUDO (NECESIDADES)
+# ========================================================
+elif st.session_state.pagina == 'config_supervivencia':
+    st.title(" Configuración del Escudo de Supervivencia")
+    st.write("Para que Ledgerly sepa qué es un **Gasto Hormiga**, primero dinos qué es vital para ti.")
+    st.info("Marca las categorías que consideras **NECESIDADES** (Ej. Pasajes, Comida base).")
+    
+    # Usamos las categorías que el usuario eligió en el formulario inicial
+    cats_perfil = st.session_state.form_cats
+    necesidades_seleccionadas = []
+    
+    # Creamos un diseño de columnas para los checkboxes
+    col_check1, col_check2 = st.columns(2)
+    for i, c in enumerate(cats_perfil):
+        with col_check1 if i % 2 == 0 else col_check2:
+            if st.checkbox(c, key=f"c_{c}"):
+                necesidades_seleccionadas.append(c)
+            
+    if st.button(" INICIAR MI CICLO DE 30 DÍAS", use_container_width=True):
+        if necesidades_seleccionadas:
+            st.session_state.lista_blanca = necesidades_seleccionadas
+            # Inicializamos el presupuesto dinámico
+            st.session_state.presupuesto_hoy = st.session_state.perfil_completo['presupuesto_diario']
+            st.session_state.gastos_totales_dia = 0.0
+            st.session_state.hormigas_acumuladas = 0.0
+            st.session_state.pagina = 'ciclo_diario'
+            st.rerun()
+        else:
+            st.error("Debes marcar al menos una categoría como necesidad.")
+
+# ========================================================
+# PÁGINA 7: EL CICLO DIARIO (REGISTRO CÍCLICO)
+# ========================================================
+elif st.session_state.pagina == 'ciclo_diario':
+    # Encabezado Personalizado
+    st.header(f"Hola, {st.session_state.perfil_completo['nombre']} ")
+    
+    # MÉTRICAS EN TIEMPO REAL
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Límite para Hoy", f"${st.session_state.perfil_completo['presupuesto_diario']:.2f}")
+    m2.metric("Gastado", f"${st.session_state.gastos_totales_dia:.2f}", delta=f"-{st.session_state.gastos_totales_dia}", delta_color="inverse")
+    m3.metric("Fuga Hormiga", f"${st.session_state.hormigas_acumuladas:.2f}", help="Dinero gastado en categorías no esenciales.")
+
+    st.divider()
+
+    # FORMULARIO DE REGISTRO
+    st.subheader(" Registrar Gasto")
+    with st.container(border=True):
+        c1, c2 = st.columns([2, 1])
+        with c1:
+            concepto = st.text_input("¿En qué gastaste?", placeholder="Ej. Tacos, Café, Camión...")
+            cat_gasto = st.selectbox("Categoría del gasto:", st.session_state.form_cats)
+        with c2:
+            monto = st.number_input("Monto (MXN):", min_value=0.0, step=5.0)
+
+    if st.button("REGISTRAR Y ANALIZAR", use_container_width=True):
+        if concepto and monto > 0:
+            # LÓGICA DE CLASIFICACIÓN
+            st.session_state.gastos_totales_dia += monto
+            
+            if cat_gasto in st.session_state.lista_blanca:
+                st.success(f"Gasto registrado: **{concepto}** (${monto}) es una Necesidad.")
+            else:
+                st.session_state.hormigas_acumuladas += monto
+                st.warning(f"**GASTO HORMIGA:** {concepto} no es vital. Has tirado ${monto} hoy.")
+            
+            # RECALCULAR PRESUPUESTO RESTANTE
+            restante = st.session_state.perfil_completo['presupuesto_diario'] - st.session_state.gastos_totales_dia
+            
+            if restante < 0:
+                st.error(f"¡TE PASASTE! Has excedido tu límite diario por ${abs(restante):.2f}")
+            else:
+                st.info(f"Aún tienes **${restante:.2f}** disponibles para el resto del día.")
+        else:
+            st.warning("Escribe qué compraste y cuánto costó.")
+
+    # ANÁLISIS DE SUPERVIVENCIA (DINÁMICO)
+    st.write("---")
+    st.subheader("Análisis de Supervivencia")
+    
+    if st.session_state.gastos_totales_dia > 0:
+        porcentaje_hormiga = (st.session_state.hormigas_acumuladas / st.session_state.gastos_totales_dia) * 100
+        
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.write("**Calidad de Gasto:**")
+            if porcentaje_hormiga < 20:
+                st.write(" **Excelente:** La mayoría es gasto necesario.")
+            elif 20 <= porcentaje_hormiga < 50:
+                st.write(" **Cuidado:** Tus hormigas están creciendo.")
+            else:
+                st.write(" **Crítico:** Estás gastando más en gustos que en vivir.")
+        
+        with col_b:
+            # Gráfica rápida de pastel del día
+            df_dia = pd.DataFrame({
+                'Tipo': ['Necesidades', 'Hormigas'],
+                'Monto': [st.session_state.gastos_totales_dia - st.session_state.hormigas_acumuladas, st.session_state.hormigas_acumuladas]
+            })
+            st.bar_chart(data=df_dia, x='Tipo', y='Monto', height=200)
+
+    # BOTÓN PARA CERRAR DÍA (Simulación de ciclo)
+    if st.button("🏁 Terminar Día y Guardar"):
+        st.balloons()
+        st.success("Día 1 guardado. ¡Faltan 29 días para tu análisis final!")
