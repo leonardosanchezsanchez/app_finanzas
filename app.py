@@ -26,14 +26,17 @@ if 'pagina' not in st.session_state:
     perfil_datos = cargar_perfil()
     if perfil_datos:
         st.session_state.perfil_completo = perfil_datos
+        # IMPORTANTE: Aquí inicializamos 'form_cats' con lo que guardamos
+        st.session_state.form_cats = perfil_datos.get('mis_categorias', [])
         st.session_state.mis_categorias = perfil_datos.get('mis_categorias', [])
         st.session_state.lista_blanca = perfil_datos.get('lista_blanca', [])
         st.session_state.gastos_dia = perfil_datos.get('gastos_dia', 0.0)
         st.session_state.hormigas_dia = perfil_datos.get('hormigas_dia', 0.0)
         st.session_state.pagina = 'ciclo_diario'
     else:
+        # Si es la primera vez, creamos la variable vacía para que no de error
+        st.session_state.form_cats = []
         st.session_state.pagina = 'inicio'
-
 # --- LOGICA DE PANTALLAS ---
 
 if st.session_state.pagina == 'bienvenida':
@@ -356,7 +359,7 @@ elif st.session_state.pagina == 'config_supervivencia':
     seleccion = []
     st.write("Selecciona tus **NECESIDADES**:")
     
-    c1, c2 = st.columns(2)
+    c1, c2 = st.columns(2)iam
     for i, c in enumerate(cats_viejas):
         with c1 if i % 2 == 0 else c2:
             # Usamos un key único para que no haya errores de duplicados
