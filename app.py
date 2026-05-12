@@ -292,52 +292,57 @@ elif st.session_state.pagina == 'formulario_inicial':
                 st.write(" **Mejora:** Es urgente recortar suscripciones o gastos variables. Tu prioridad debe ser bajar tus gastos fijos al 70%.")
 
            # --- 5. SEGURIDAD PARA EL ANÁLISIS (Sigue dentro del botón) ---
-            st.session_state.analisis_listo = True
-            st.session_state.temp_presupuesto = presupuesto_diario
-            st.session_state.temp_balance = balance_disponible
-            st.session_state.temp_nombre = nombre_real
-            st.session_state.form_cats = list(gastos_estimados.keys())
+            st.session_state['analisis_listo'] = True
+            st.session_state['datos_pd'] = presupuesto_diario
+            st.session_state['datos_nombre'] = nombre_real
+            # Guardamos las categorías en una lista limpia
+            st.session_state['mis_categorias'] = list(gastos_estimados.keys())
 
         # --- 6. MOSTRAR OBJETIVOS (ESTE VA FUERA DEL BOTÓN, ALINEADO AL DIVIDER) ---
         # Fíjate que este 'if' está a la misma altura que el 'st.divider()' de la línea 295
-    if "analisis_listo" in st.session_state and st.session_state.analisis_listo:
-            st.divider()
-            st.subheader(" Define tu Estrategia")
-            opcion = st.selectbox("¿Cómo quieres proceder?", 
-                                ["Solo registrar gastos (Control)", 
-                                 "Ayuda para no quedarme sin dinero (Supervivencia)"])
+    if st.session_state.get('analisis_listo'):
+        st.divider()
+        st.subheader("🎯 Define tu Estrategia")
+        
+        # OJO: Cambié el nombre del key a 'seleccion_estrategia' para que no choque
+        estrategia = st.selectbox(
+            "¿Cómo quieres que Ledgerly te ayude?",
+            ["Solo registrar gastos (Control)", 
+             "Ayuda para no quedarme sin dinero (Supervivencia)"],
+            key="seleccion_estrategia"
+        )
 
-            if st.button("Confirmar e Iniciar"):
-                st.session_state.perfil_completo = {
-                    "nombre": st.session_state.temp_nombre,
-                    "pd": st.session_state.temp_pd,
-                    "estrategia": opcion
-                }
-                if opcion == "Ayuda para no quedarme sin dinero (Supervivencia)":
-                    st.session_state.pagina = 'config_supervivencia'
-                else:
-                    st.session_state.pagina = 'dashboard'
-                st.rerun()
+        if st.button("Confirmar e Iniciar"):
+            # Pasamos los datos temporales al perfil oficial
+            st.session_state.perfil_completo = {
+                "nombre": st.session_state['datos_nombre'],
+                "pd": st.session_state['datos_pd'],
+                "estrategia": estrategia
+            }
+            
+            if estrategia == "Ayuda para no quedarme sin dinero (Supervivencia)":
+                st.session_state.pagina = 'config_supervivencia'
+            else:
+                st.session_state.pagina = 'dashboard'
+            st.rerun()
 
-# ==========================================
-# PARTE 2: CONFIGURACIÓN DE NECESIDADES
-# ==========================================
 elif st.session_state.pagina == 'config_supervivencia':
-    st.title(" Configura tu Escudo")
-    st.subheader("Selecciona tus Gastos de Necesidad")
-    st.write("Marca qué categorías son Vitales. Lo que no marques, Ledgerly lo contará como Gasto Hormiga.")
+    st.title("🛡️ Configura tu Escudo")
     
-    # Usamos las categorías que el usuario llenó en el formulario
-    cats = st.session_state.form_cats
+    # Aquí usamos la lista segura que guardamos arriba
+    cats_viejas = st.session_state.get('mis_categorias', ["Comida", "Transporte", "Hogar"])
+    
     seleccion = []
+    st.write("Selecciona tus **NECESIDADES**:")
     
-    col1, col2 = st.columns(2)
-    for i, c in enumerate(cats):
-        with col1 if i % 2 == 0 else col2:
-            if st.checkbox(c, key=f"check_{c}"):
+    c1, c2 = st.columns(2)
+    for i, c in enumerate(cats_viejas):
+        with c1 if i % 2 == 0 else c2:
+            # Usamos un key único para que no haya errores de duplicados
+            if st.checkbox(c, key=f"v_check_{c}"):
                 seleccion.append(c)
                 
-    if st.button(" INICIAR CICLO"):
+    if st.button("🚀 INICIAR CICLO"):
         if seleccion:
             st.session_state.lista_blanca = seleccion
             st.session_state.gastos_dia = 0.0
@@ -345,7 +350,7 @@ elif st.session_state.pagina == 'config_supervivencia':
             st.session_state.pagina = 'ciclo_diario'
             st.rerun()
         else:
-            st.error("Por favor, marca al menos una necesidad.")
+            st.error("Debes marcar al menos una categoría como necesidad.")
 
 # ==========================================
 # PARTE 3: EL CICLO DIARIO (REGISTRO)
