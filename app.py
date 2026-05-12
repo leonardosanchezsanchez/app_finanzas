@@ -296,6 +296,7 @@ elif st.session_state.pagina == 'formulario_inicial':
             st.session_state.temp_presupuesto = presupuesto_diario
             st.session_state.temp_balance = balance_disponible
             st.session_state.temp_nombre = nombre_real
+            st.session_state.form_cats = list(gastos_estimados.keys())
 
         # --- 6. MOSTRAR OBJETIVOS (ESTE VA FUERA DEL BOTÓN, ALINEADO AL DIVIDER) ---
         # Fíjate que este 'if' está a la misma altura que el 'st.divider()' de la línea 295
