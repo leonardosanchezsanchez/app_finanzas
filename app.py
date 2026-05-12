@@ -353,38 +353,32 @@ elif st.session_state.pagina == 'config_supervivencia':
             st.error("Debes marcar al menos una categoría como necesidad.")
 
 # ==========================================
-# PARTE 3: EL CICLO DIARIO (REGISTRO)
-# ==========================================
-elif st.session_state.pagina == 'ciclo_diario':
-    nombre = st.session_state.perfil_completo['nombre']
-    pd = st.session_state.perfil_completo['pd']
+# elif st.session_state.pagina == 'ciclo_diario':
+    info = st.session_state.perfil_completo
+    st.header(f"¡Hola, {info['nombre']}! ")
     
-    st.header(f"¡Hola, {nombre}! ")
-    st.info(f"Tu límite para hoy es de **${pd}**")
-    
-    # Métricas en tiempo real
-    c1, c2 = st.columns(2)
-    c1.metric("Gastado", f"${st.session_state.gastos_dia}")
-    c2.metric("Gastos Hormiga", f"${st.session_state.hormigas_dia}", delta_color="inverse")
+    # 1. Creamos las opciones: Las categorías del usuario + la opción "Hormiga"
+    opciones_gasto = [" Gasto Hormiga (Ninguna)"] + st.session_state.get('mis_categorias', [])
 
     with st.container(border=True):
         st.write("### Registrar Gasto")
         concepto = st.text_input("¿En qué gastaste?")
-        cat_elegida = st.selectbox("Categoría", st.session_state.get('mis_categorias', ["Varios"]))
-        monto = st.number_input("Monto ($)", min_value=0.0, step=1.0)
+        # 2. Usamos la nueva lista de opciones
+        cat_reg = st.selectbox("Categoría", opciones_gasto)
+        monto = st.number_input("Monto ($)", min_value=0.0)
 
-    if st.button(" LISTO"):
+    if st.button("✅ LISTO"):
         if monto > 0:
             st.session_state.gastos_dia += monto
-            # Aquí la app separa Necesidad de Hormiga
-            if cat_elegida in st.session_state.lista_blanca:
-                st.success(f"Gasto en '{cat_elegida}' registrado como Necesidad.")
-            else:
-                st.session_state.hormigas_dia += monto
-                st.warning(f"¡Cuidado! '${concepto}' es un Gasto Hormiga.")
             
-            # Verificación de límite
-            if st.session_state.gastos_dia > pd:
-                st.error(f" Has superado tu límite diario por ${st.session_state.gastos_dia - pd:.2f}")
+            # 3. LÓGICA DE SEPARACIÓN MEJORADA
+            # Si elige la opción de "Ninguna" O la categoría NO está en la lista blanca
+            es_hormiga = (cat_reg == " Gasto Hormiga (Ninguna)") or (cat_reg not in st.session_state.get('lista_blanca', []))
+            
+            if es_hormiga:
+                st.session_state.hormigas_dia += monto
+                st.warning(f"¡Hormiga detectada! Has gastado ${monto} en algo no vital.")
+            else:
+                st.success(f"Gasto necesario en '{cat_reg}' registrado.")
             
             st.rerun()
