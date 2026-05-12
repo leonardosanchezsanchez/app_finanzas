@@ -1,11 +1,14 @@
 import streamlit as st
-from base_de_datos import inicializar_db
 import pandas as pd
 import plotly.express as px
 import json
 import os
+from base_de_datos import inicializar_db
 
 st.set_page_config(page_title="Ledgerly - Analisis Financiero", layout="centered")
+
+# 1. INICIALIZACION
+inicializar_db()
 
 
 def guardar_perfil(datos):
@@ -18,23 +21,22 @@ def cargar_perfil():
             return json.load(f)
     return None
 
-# 1. INICIALIZACION
-inicializar_db()
 
 # 2. GESTION DE NAVEGACION
 if 'pagina' not in st.session_state:
     perfil_datos = cargar_perfil()
+    
     if perfil_datos:
+        # Si ya existe un perfil, cargamos todo a la sesión
         st.session_state.perfil_completo = perfil_datos
-        # IMPORTANTE: Aquí inicializamos 'form_cats' con lo que guardamos
-        st.session_state.form_cats = perfil_datos.get('mis_categorias', [])
         st.session_state.mis_categorias = perfil_datos.get('mis_categorias', [])
+        st.session_state.form_cats = perfil_datos.get('mis_categorias', []) # <--- Vital para evitar el error anterior
         st.session_state.lista_blanca = perfil_datos.get('lista_blanca', [])
         st.session_state.gastos_dia = perfil_datos.get('gastos_dia', 0.0)
         st.session_state.hormigas_dia = perfil_datos.get('hormigas_dia', 0.0)
         st.session_state.pagina = 'ciclo_diario'
     else:
-        # Si es la primera vez, creamos la variable vacía para que no de error
+        # Si es nuevo, lo mandamos al inicio
         st.session_state.form_cats = []
         st.session_state.pagina = 'inicio'
 # --- LOGICA DE PANTALLAS ---
