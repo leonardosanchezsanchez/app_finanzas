@@ -1,6 +1,7 @@
 import streamlit as st
 from base_de_datos import inicializar_db
 import pandas as pd
+import plotly.express as px
 
 # 1. INICIALIZACION
 inicializar_db()
@@ -266,7 +267,6 @@ elif st.session_state.pagina == 'formulario_inicial':
                      f"Esto sería clave para tu meta de: *{meta_ahorro if meta_ahorro else 'tu futuro'}*.")
 
             # --- 3. GRÁFICA  ---
-            import plotly.express as px
             datos_pie = {
                 "Concepto": list(gastos_estimados.keys()) + ["Ahorro", "Libre"],
                 "Monto": list(gastos_estimados.values()) + [monto_ahorro, max(0, balance_disponible)]
@@ -295,73 +295,90 @@ elif st.session_state.pagina == 'formulario_inicial':
             st.session_state.analisis_listo = True
             st.session_state.temp_presupuesto = presupuesto_diario
             st.session_state.temp_balance = balance_disponible
+            st.session_state.temp_nombre = nombre_real
 
         # --- 6. MOSTRAR OBJETIVOS (ESTE VA FUERA DEL BOTÓN, ALINEADO AL DIVIDER) ---
         # Fíjate que este 'if' está a la misma altura que el 'st.divider()' de la línea 295
     if "analisis_listo" in st.session_state and st.session_state.analisis_listo:
-        st.divider()
-        st.subheader(" Define tu Estrategia")
-            
-        objetivo_final = st.selectbox(
-            "¿Cómo quieres que Ledgerly te ayude?",
-            ["Solo registrar gastos (Control)", 
-            "Administrar para mi meta (Ahorro)", 
-            "Ayuda para no quedarme sin dinero (Supervivencia)"],
-            key="sel_final_final"
-        )
+            st.divider()
+            st.subheader(" Define tu Estrategia")
+            opcion = st.selectbox("¿Cómo quieres proceder?", 
+                                ["Solo registrar gastos (Control)", 
+                                 "Ayuda para no quedarme sin dinero (Supervivencia)"])
 
-        if st.button("Confirmar y Empezar Registro"):
-            st.session_state.perfil_completo = {
-                "nombre": nombre_real,
-                "presupuesto_diario": st.session_state.temp_presupuesto,
-                "objetivo": objetivo_final
+            if st.button("Confirmar e Iniciar"):
+                st.session_state.perfil_completo = {
+                    "nombre": st.session_state.temp_nombre,
+                    "pd": st.session_state.temp_pd,
+                    "estrategia": opcion
                 }
-                
-            if objetivo_final == "Ayuda para no quedarme sin dinero (Supervivencia)":
-                st.session_state.pagina = 'config_supervivencia'
-            else:
-                st.session_state.pagina = 'dashboard'
-            st.rerun()
+                if opcion == "Ayuda para no quedarme sin dinero (Supervivencia)":
+                    st.session_state.pagina = 'config_supervivencia'
+                else:
+                    st.session_state.pagina = 'dashboard'
+                st.rerun()
 
-# --- PÁGINAS FINALES (ESTAS VAN PEGADAS TOTALMENTE A LA IZQUIERDA, LÍNEA 1) ---
+# ==========================================
+# PARTE 2: CONFIGURACIÓN DE NECESIDADES
+# ==========================================
 elif st.session_state.pagina == 'config_supervivencia':
     st.title(" Configura tu Escudo")
-    st.write(f"Hola {st.session_state.usuario_actual}, marca tus **NECESIDADES**.")
+    st.subheader("Selecciona tus Gastos de Necesidad")
+    st.write("Marca qué categorías son Vitales. Lo que no marques, Ledgerly lo contará como Gasto Hormiga.")
     
+    # Usamos las categorías que el usuario llenó en el formulario
     cats = st.session_state.form_cats
     seleccion = []
-    col_a, col_b = st.columns(2)
+    
+    col1, col2 = st.columns(2)
     for i, c in enumerate(cats):
-        with col_a if i % 2 == 0 else col_b:
-            if st.checkbox(c, key=f"c_{c}"):
+        with col1 if i % 2 == 0 else col2:
+            if st.checkbox(c, key=f"check_{c}"):
                 seleccion.append(c)
-            
+                
     if st.button(" INICIAR CICLO"):
         if seleccion:
             st.session_state.lista_blanca = seleccion
-            st.session_state.gastos_totales_dia = 0.0
-            st.session_state.hormigas_acumuladas = 0.0
+            st.session_state.gastos_dia = 0.0
+            st.session_state.hormigas_dia = 0.0
             st.session_state.pagina = 'ciclo_diario'
             st.rerun()
         else:
-            st.error("Selecciona al menos una categoría.")
+            st.error("Por favor, marca al menos una necesidad.")
 
+# ==========================================
+# PARTE 3: EL CICLO DIARIO (REGISTRO)
+# ==========================================
 elif st.session_state.pagina == 'ciclo_diario':
-    st.header(f"Hola, {st.session_state.perfil_completo['nombre']} ")
-    pd = st.session_state.perfil_completo['presupuesto_diario']
+    nombre = st.session_state.perfil_completo['nombre']
+    pd = st.session_state.perfil_completo['pd']
     
-    st.metric("Presupuesto Diario", f"${pd}", f"-${st.session_state.gastos_totales_dia}")
+    st.header(f"¡Hola, {nombre}! ")
+    st.info(f"Tu límite para hoy es de **${pd}**")
+    
+    # Métricas en tiempo real
+    c1, c2 = st.columns(2)
+    c1.metric("Gastado", f"${st.session_state.gastos_dia}")
+    c2.metric("Gastos Hormiga", f"${st.session_state.hormigas_dia}", delta_color="inverse")
 
     with st.container(border=True):
-        concepto = st.text_input("Concepto")
-        cat_g = st.selectbox("Categoría", st.session_state.form_cats)
-        monto_g = st.number_input("Monto", min_value=0.0)
+        st.write("### Registrar Gasto")
+        concepto = st.text_input("¿En qué gastaste?")
+        cat_elegida = st.selectbox("Categoría", st.session_state.form_cats)
+        monto = st.number_input("Monto ($)", min_value=0.0, step=1.0)
 
-    if st.button(" REGISTRAR"):
-        st.session_state.gastos_totales_dia += monto_g
-        if cat_g in st.session_state.lista_blanca:
-            st.success("Gasto necesario.")
-        else:
-            st.session_state.hormigas_acumuladas += monto_g
-            st.warning("¡Gasto Hormiga!")
-        st.rerun()
+    if st.button(" LISTO"):
+        if monto > 0:
+            st.session_state.gastos_dia += monto
+            # Aquí la app separa Necesidad de Hormiga
+            if cat_elegida in st.session_state.lista_blanca:
+                st.success(f"Gasto en '{cat_elegida}' registrado como Necesidad.")
+            else:
+                st.session_state.hormigas_dia += monto
+                st.warning(f"¡Cuidado! '${concepto}' es un Gasto Hormiga.")
+            
+            # Verificación de límite
+            if st.session_state.gastos_dia > pd:
+                st.error(f" Has superado tu límite diario por ${st.session_state.gastos_dia - pd:.2f}")
+            
+            st.rerun()
