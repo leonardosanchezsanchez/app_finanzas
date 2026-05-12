@@ -298,30 +298,30 @@ elif st.session_state.pagina == 'formulario_inicial':
 
         # --- 6. MOSTRAR OBJETIVOS (ESTE VA FUERA DEL BOTÓN, ALINEADO AL DIVIDER) ---
         # Fíjate que este 'if' está a la misma altura que el 'st.divider()' de la línea 295
-        if "analisis_listo" in st.session_state and st.session_state.analisis_listo:
-            st.divider()
-            st.subheader(" Define tu Estrategia")
+    if "analisis_listo" in st.session_state and st.session_state.analisis_listo:
+        st.divider()
+        st.subheader(" Define tu Estrategia")
             
-            objetivo_final = st.selectbox(
-                "¿Cómo quieres que Ledgerly te ayude?",
-                ["Solo registrar gastos (Control)", 
-                 "Administrar para mi meta (Ahorro)", 
-                 "Ayuda para no quedarme sin dinero (Supervivencia)"],
-                key="sel_final_final"
-            )
+        objetivo_final = st.selectbox(
+            "¿Cómo quieres que Ledgerly te ayude?",
+            ["Solo registrar gastos (Control)", 
+            "Administrar para mi meta (Ahorro)", 
+            "Ayuda para no quedarme sin dinero (Supervivencia)"],
+            key="sel_final_final"
+        )
 
-            if st.button("Confirmar y Empezar Registro"):
-                st.session_state.perfil_completo = {
-                    "nombre": nombre_real,
-                    "presupuesto_diario": st.session_state.temp_presupuesto,
-                    "objetivo": objetivo_final
+        if st.button("Confirmar y Empezar Registro"):
+            st.session_state.perfil_completo = {
+                "nombre": nombre_real,
+                "presupuesto_diario": st.session_state.temp_presupuesto,
+                "objetivo": objetivo_final
                 }
                 
-                if objetivo_final == "Ayuda para no quedarme sin dinero (Supervivencia)":
-                    st.session_state.pagina = 'config_supervivencia'
-                else:
-                    st.session_state.pagina = 'dashboard'
-                st.rerun()
+            if objetivo_final == "Ayuda para no quedarme sin dinero (Supervivencia)":
+                st.session_state.pagina = 'config_supervivencia'
+            else:
+                st.session_state.pagina = 'dashboard'
+            st.rerun()
 
 # --- PÁGINAS FINALES (ESTAS VAN PEGADAS TOTALMENTE A LA IZQUIERDA, LÍNEA 1) ---
 elif st.session_state.pagina == 'config_supervivencia':
@@ -347,7 +347,7 @@ elif st.session_state.pagina == 'config_supervivencia':
             st.error("Selecciona al menos una categoría.")
 
 elif st.session_state.pagina == 'ciclo_diario':
-    st.header(f"Hola, {st.session_state.perfil_completo['nombre']} 👋")
+    st.header(f"Hola, {st.session_state.perfil_completo['nombre']} ")
     pd = st.session_state.perfil_completo['presupuesto_diario']
     
     st.metric("Presupuesto Diario", f"${pd}", f"-${st.session_state.gastos_totales_dia}")
