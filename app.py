@@ -352,8 +352,7 @@ elif st.session_state.pagina == 'config_supervivencia':
         else:
             st.error("Debes marcar al menos una categoría como necesidad.")
 
-# ==========================================
-# elif st.session_state.pagina == 'ciclo_diario':
+elif st.session_state.pagina == 'ciclo_diario':
     info = st.session_state.perfil_completo
     st.header(f"¡Hola, {info['nombre']}! ")
     
@@ -367,7 +366,7 @@ elif st.session_state.pagina == 'config_supervivencia':
         cat_reg = st.selectbox("Categoría", opciones_gasto)
         monto = st.number_input("Monto ($)", min_value=0.0)
 
-    if st.button("✅ LISTO"):
+    if st.button(" LISTO"):
         if monto > 0:
             st.session_state.gastos_dia += monto
             
