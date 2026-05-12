@@ -327,7 +327,7 @@ elif st.session_state.pagina == 'formulario_inicial':
             st.rerun()
 
 elif st.session_state.pagina == 'config_supervivencia':
-    st.title("🛡️ Configura tu Escudo")
+    st.title(" Configura tu Escudo")
     
     # Aquí usamos la lista segura que guardamos arriba
     cats_viejas = st.session_state.get('mis_categorias', ["Comida", "Transporte", "Hogar"])
@@ -342,7 +342,7 @@ elif st.session_state.pagina == 'config_supervivencia':
             if st.checkbox(c, key=f"v_check_{c}"):
                 seleccion.append(c)
                 
-    if st.button("🚀 INICIAR CICLO"):
+    if st.button(" INICIAR CICLO"):
         if seleccion:
             st.session_state.lista_blanca = seleccion
             st.session_state.gastos_dia = 0.0
@@ -370,7 +370,7 @@ elif st.session_state.pagina == 'ciclo_diario':
     with st.container(border=True):
         st.write("### Registrar Gasto")
         concepto = st.text_input("¿En qué gastaste?")
-        cat_elegida = st.selectbox("Categoría", st.session_state.form_cats)
+        cat_elegida = st.selectbox("Categoría", st.session_state.get('mis_categorias', ["Varios"]))
         monto = st.number_input("Monto ($)", min_value=0.0, step=1.0)
 
     if st.button(" LISTO"):
