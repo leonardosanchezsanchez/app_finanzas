@@ -2,6 +2,18 @@ import streamlit as st
 from base_de_datos import inicializar_db
 import pandas as pd
 import plotly.express as px
+import json
+import os
+
+def guardar_perfil(datos):
+    with open('perfil_usuario.json', 'w') as f:
+        json.dump(datos, f)
+
+def cargar_perfil():
+    if os.path.exists('perfil_usuario.json'):
+        with open('perfil_usuario.json', 'r') as f:
+            return json.load(f)
+    return None
 
 # 1. INICIALIZACION
 inicializar_db()
@@ -11,7 +23,18 @@ st.set_page_config(page_title="Ledgerly - Analisis Financiero", layout="centered
 
 # 2. GESTION DE NAVEGACION
 if 'pagina' not in st.session_state:
-    st.session_state.pagina = 'bienvenida'
+    perfil_guardado = cargar_perfil()
+    if perfil_guardado:
+        # Si existe el archivo, cargamos todo y saltamos al ciclo
+        st.session_state.perfil_completo = perfil_guardado
+        st.session_state.mis_categorias = perfil_guardado.get('mis_categorias', [])
+        st.session_state.lista_blanca = perfil_guardado.get('lista_blanca', [])
+        st.session_state.gastos_dia = perfil_guardado.get('gastos_dia', 0.0)
+        st.session_state.hormigas_dia = perfil_guardado.get('hormigas_dia', 0.0)
+        st.session_state.pagina = 'ciclo_diario'
+    else:
+        # Si no hay perfil, empezamos en el inicio
+        st.session_state.pagina = 'inicio'
 
 # --- LOGICA DE PANTALLAS ---
 
@@ -302,7 +325,7 @@ elif st.session_state.pagina == 'formulario_inicial':
         # Fíjate que este 'if' está a la misma altura que el 'st.divider()' de la línea 295
     if st.session_state.get('analisis_listo'):
         st.divider()
-        st.subheader("🎯 Define tu Estrategia")
+        st.subheader(" Define tu Estrategia")
         
         # OJO: Cambié el nombre del key a 'seleccion_estrategia' para que no choque
         estrategia = st.selectbox(
@@ -342,22 +365,49 @@ elif st.session_state.pagina == 'config_supervivencia':
             if st.checkbox(c, key=f"v_check_{c}"):
                 seleccion.append(c)
                 
-    if st.button(" INICIAR CICLO"):
-        if seleccion:
+    if st.button("INICIAR CICLO"):
+        # 1. Validación: Si no seleccionó nada, le avisamos y no lo dejamos pasar
+        if not seleccion:
+            st.error("Debes marcar al menos una categoría como necesidad.")
+        else:
+            # 2. Si sí seleccionó, guardamos todo
             st.session_state.lista_blanca = seleccion
             st.session_state.gastos_dia = 0.0
             st.session_state.hormigas_dia = 0.0
+            
+            datos_a_guardar = {
+                "nombre": st.session_state.perfil_completo['nombre'],
+                "pd": st.session_state.perfil_completo['pd'],
+                "mis_categorias": st.session_state.get('mis_categorias', []),
+                "lista_blanca": seleccion,
+                "gastos_dia": 0.0,
+                "hormigas_dia": 0.0
+            }
+            
+            # 3. Guardamos el archivo físico y cambiamos de página
+            guardar_perfil(datos_a_guardar)
             st.session_state.pagina = 'ciclo_diario'
             st.rerun()
-        else:
-            st.error("Debes marcar al menos una categoría como necesidad.")
 
 elif st.session_state.pagina == 'ciclo_diario':
     info = st.session_state.perfil_completo
     st.header(f"¡Hola, {info['nombre']}! ")
     
-    # 1. Creamos las opciones: Las categorías del usuario + la opción "Hormiga"
+    # --- COPIA DESDE AQUÍ ---
+    # 1. Definimos las opciones (incluyendo la manual de Hormiga)
     opciones_gasto = [" Gasto Hormiga (Ninguna)"] + st.session_state.get('mis_categorias', [])
+
+    # 2. LAS MÉTRICAS QUE SEPARAN LOS GASTOS (Lo que se borró)
+    c1, c2 = st.columns(2)
+    c1.metric("Gasto Total", f"${st.session_state.gastos_dia:,.2f}")
+    
+    # El delta ayuda a ver cuánto ha subido el gasto hormiga
+    c2.metric("Gastos Hormiga ", f"${st.session_state.hormigas_dia:,.2f}", 
+              delta=f"+${st.session_state.hormigas_dia:,.2f}" if st.session_state.hormigas_dia > 0 else None,
+              delta_color="inverse")
+    
+    st.divider() 
+    # --- HASTA AQUÍ ---
 
     with st.container(border=True):
         st.write("### Registrar Gasto")
