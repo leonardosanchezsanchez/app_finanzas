@@ -359,7 +359,7 @@ elif st.session_state.pagina == 'config_supervivencia':
     seleccion = []
     st.write("Selecciona tus **NECESIDADES**:")
     
-    c1, c2 = st.columns(2)iam
+    c1, c2 = st.columns(2)
     for i, c in enumerate(cats_viejas):
         with c1 if i % 2 == 0 else c2:
             # Usamos un key único para que no haya errores de duplicados
