@@ -23,17 +23,15 @@ st.set_page_config(page_title="Ledgerly - Analisis Financiero", layout="centered
 
 # 2. GESTION DE NAVEGACION
 if 'pagina' not in st.session_state:
-    perfil_guardado = cargar_perfil()
-    if perfil_guardado:
-        # Si existe el archivo, cargamos todo y saltamos al ciclo
-        st.session_state.perfil_completo = perfil_guardado
-        st.session_state.mis_categorias = perfil_guardado.get('mis_categorias', [])
-        st.session_state.lista_blanca = perfil_guardado.get('lista_blanca', [])
-        st.session_state.gastos_dia = perfil_guardado.get('gastos_dia', 0.0)
-        st.session_state.hormigas_dia = perfil_guardado.get('hormigas_dia', 0.0)
+    perfil_datos = cargar_perfil()
+    if perfil_datos:
+        st.session_state.perfil_completo = perfil_datos
+        st.session_state.mis_categorias = perfil_datos.get('mis_categorias', [])
+        st.session_state.lista_blanca = perfil_datos.get('lista_blanca', [])
+        st.session_state.gastos_dia = perfil_datos.get('gastos_dia', 0.0)
+        st.session_state.hormigas_dia = perfil_datos.get('hormigas_dia', 0.0)
         st.session_state.pagina = 'ciclo_diario'
     else:
-        # Si no hay perfil, empezamos en el inicio
         st.session_state.pagina = 'inicio'
 
 # --- LOGICA DE PANTALLAS ---
