@@ -41,7 +41,7 @@ if 'pagina' not in st.session_state:
         st.session_state.pagina = 'inicio'
 # --- LOGICA DE PANTALLAS ---
 
-if st.session_state.pagina == 'bienvenida':
+if st.session_state.pagina == 'inicio':
     st.title("Ledgerly")
     st.write("Herramienta de Diagnostico y Analisis de Gastos Estudiantiles")
     st.write("---")
