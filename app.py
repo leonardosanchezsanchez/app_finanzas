@@ -5,6 +5,9 @@ import plotly.express as px
 import json
 import os
 
+st.set_page_config(page_title="Ledgerly - Analisis Financiero", layout="centered")
+
+
 def guardar_perfil(datos):
     with open('perfil_usuario.json', 'w') as f:
         json.dump(datos, f)
@@ -17,9 +20,6 @@ def cargar_perfil():
 
 # 1. INICIALIZACION
 inicializar_db()
-
-# Configuración de página (Debe ir al principio)
-st.set_page_config(page_title="Ledgerly - Analisis Financiero", layout="centered")
 
 # 2. GESTION DE NAVEGACION
 if 'pagina' not in st.session_state:
