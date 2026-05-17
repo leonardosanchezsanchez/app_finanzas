@@ -10,37 +10,26 @@ st.set_page_config(page_title="Ledgerly - Analisis Financiero", layout="centered
 # 1. INICIALIZACION
 inicializar_db()
 
-
-def guardar_perfil(datos):
-    with open('perfil_usuario.json', 'w') as f:
-        json.dump(datos, f)
-
-def cargar_perfil():
-    if os.path.exists('perfil_usuario.json'):
-        with open('perfil_usuario.json', 'r') as f:
-            return json.load(f)
+def cargar_perfil(nombre_usuario):
+    archivo = f"perfil_{nombre_usuario}.json"
+    if os.path.exists(archivo):
+        try:
+            with open(archivo, 'r') as f:
+                return json.load(f)
+        except:
+            return None
     return None
 
+def guardar_perfil(nombre_usuario, datos):
+    archivo = f"perfil_{nombre_usuario}.json"
+    with open(archivo, 'w') as f:
+        json.dump(datos, f)
 
-# 2. GESTION DE NAVEGACION
+# --- CONTROL DE NAVEGACIÓN INICIAL ---
 if 'pagina' not in st.session_state:
-    perfil_datos = cargar_perfil()
-    
-    if perfil_datos:
-        # Si ya existe un perfil, cargamos todo a la sesión
-        st.session_state.perfil_completo = perfil_datos
-        st.session_state.mis_categorias = perfil_datos.get('mis_categorias', [])
-        st.session_state.form_cats = perfil_datos.get('mis_categorias', []) # <--- Vital para evitar el error anterior
-        st.session_state.lista_blanca = perfil_datos.get('lista_blanca', [])
-        st.session_state.gastos_dia = perfil_datos.get('gastos_dia', 0.0)
-        st.session_state.hormigas_dia = perfil_datos.get('hormigas_dia', 0.0)
-        st.session_state.pagina = 'ciclo_diario'
-    else:
-        # Si es nuevo, lo mandamos al inicio
-        st.session_state.form_cats = []
-        st.session_state.pagina = 'inicio'
-# --- LOGICA DE PANTALLAS ---
+    st.session_state.pagina = 'inicio'
 
+# --- PÁGINA: INICIO / BIENVENIDA ---
 if st.session_state.pagina == 'inicio':
     st.title("Ledgerly")
     st.write("Herramienta de Diagnostico y Analisis de Gastos Estudiantiles")
@@ -58,13 +47,12 @@ if st.session_state.pagina == 'inicio':
             st.session_state.pagina = 'login'
             st.rerun()
 
+# --- PÁGINA: INVITADO ---
 elif st.session_state.pagina == 'invitado':
-    # BOTON PARA REGRESAR
     if st.button("Volver al inicio"):
-        st.session_state.pagina = 'bienvenida'
+        st.session_state.pagina = 'inicio'
         st.rerun()
 
-    # --- AQUI EMPIEZA TU CODIGO ORIGINAL ---
     st.title("Modo Invitado")
     st.caption("Nota: Los datos no se guardaran al cerrar la sesion.")
 
@@ -110,7 +98,7 @@ elif st.session_state.pagina == 'invitado':
 
     # --- SECCION 3: HABITOS DE AHORRO ---
     with st.container(border=True):
-        st.header("3. Cultura de Ahorro")
+        st.header("3. Culture de Ahorro")
         se_queda_sin_dinero = st.selectbox(
             "¿Te pasa que te quedas sin un peso antes de que termine la semana o el mes?", 
             ["Siempre", "A veces", "Nunca"]
@@ -176,18 +164,18 @@ elif st.session_state.pagina == 'invitado':
         st.write(f"Intenta gastar maximo **${presupuesto_diario * 0.8:.2f}** al dia.")
         st.write(f"Intenta ahorrar al menos **${ingreso_num * 0.10:.2f}** cada mes.")
 
+# --- PÁGINA: LOGIN Y REGISTRO ---
 elif st.session_state.pagina == 'login':
     if st.button("Volver", key="btn_login_regresar"):
-        st.session_state.pagina = 'bienvenida'
+        st.session_state.pagina = 'inicio'
         st.rerun()
 
     st.title("Acceso a Ledgerly")
-    
     tab1, tab2 = st.tabs(["Iniciar Sesion", "Registrarme"])
 
     with tab1:
         st.subheader("Bienvenido de nuevo")
-        user_login = st.text_input("Usuario", key="login_user_input")
+        user_login = st.text_input("Usuario", key="login_user_input").lower().strip()
         pass_login = st.text_input("Contrasena", type="password", key="login_pass_input")
         
         if st.button("Entrar", key="btn_validar_login"):
@@ -199,7 +187,18 @@ elif st.session_state.pagina == 'login':
                     st.session_state.usuario_id = usuario_valido[0]
                     st.session_state.usuario_actual = usuario_valido[1]
                     st.success(f"Hola de nuevo, {user_login}")
-                    st.session_state.pagina = 'formulario_inicial'
+                    
+                    # Verificamos si este usuario ya cuenta con un perfil guardado
+                    datos_existentes = cargar_perfil(usuario_valido[1])
+                    if datos_existentes:
+                        st.session_state.perfil_completo = datos_existentes
+                        st.session_state.mis_categorias = datos_existentes.get('mis_categorias', [])
+                        st.session_state.lista_blanca = datos_existentes.get('lista_blanca', [])
+                        st.session_state.gastos_dia = datos_existentes.get('gastos_dia', 0.0)
+                        st.session_state.hormigas_dia = datos_existentes.get('hormigas_dia', 0.0)
+                        st.session_state.pagina = 'ciclo_diario'
+                    else:
+                        st.session_state.pagina = 'formulario_inicial'
                     st.rerun()
                 else:
                     st.error("Usuario o contrasena incorrectos.")
@@ -210,7 +209,7 @@ elif st.session_state.pagina == 'login':
         st.subheader("Crea tu cuenta")
         st.write("Registra un usuario unico para empezar a trackear tus gastos.")
         
-        nuevo_usuario = st.text_input("Elige un nombre de usuario", key="reg_user_input")
+        nuevo_usuario = st.text_input("Elige un nombre de usuario", key="reg_user_input").lower().strip()
         nueva_password = st.text_input("Crea una contrasena", type="password", key="reg_pass_input")
         
         if st.button("Registrarme", key="btn_crear_cuenta"):
@@ -223,6 +222,7 @@ elif st.session_state.pagina == 'login':
             else:
                 st.warning("Por favor rellena todos los campos.")
 
+# --- PÁGINA: CUESTIONARIO INICIAL ---
 elif st.session_state.pagina == 'formulario_inicial':
     st.title("Configuracion de Perfil Financiero")
     st.write(f"Hola {st.session_state.usuario_actual}, responde esto para personalizar tu experiencia.")
@@ -254,26 +254,18 @@ elif st.session_state.pagina == 'formulario_inicial':
         meta_ahorro = st.text_input("¿Para que estas ahorrando?", key="form_meta")
         monto_ahorro = st.number_input("¿Cuanto de tu ingreso destinas al ahorro?", min_value=0.0, key="form_monto_ahorro")
 
-    # ESTO VA AL FINAL DE TU FORMULARIO
     if st.button("Finalizar Registro y Ver Análisis", key="btn_finalizar_todo"):
         if nombre_real and fuentes:
-            # --- 1. CÁLCULOS LÓGICOS ---
             total_gastos_fijos = sum(gastos_estimados.values())
             balance_disponible = monto_ingreso - total_gastos_fijos - monto_ahorro
-            
-            # Cálculo de supervivencia diaria
-            # Usamos los días que faltan para el pago que el usuario puso antes
             presupuesto_diario = round(balance_disponible / dias_para_pago, 2) if dias_para_pago > 0 else 0
 
-            # Proyección a 6 meses: (Ahorro actual + un 20% extra del ingreso) * 6 meses
             ahorro_extra_sugerido = monto_ingreso * 0.20
             total_6_meses = (monto_ahorro + ahorro_extra_sugerido) * 6
 
-            # --- 2. EL ANÁLISIS COMPLEJO (VISUAL) ---
             st.divider()
             st.header(f" Reporte de Inteligencia Financiera para {nombre_real}")
 
-            # Bloque de Gasto Diario
             st.subheader(" Guía de Gastos de Supervivencia")
             if balance_disponible > 0:
                 st.info(f"""
@@ -283,7 +275,6 @@ elif st.session_state.pagina == 'formulario_inicial':
             else:
                 st.error(f" **Cuidado:** Tus compromisos superan tus ingresos por ${abs(balance_disponible)}. No tienes presupuesto diario disponible.")
 
-            # Bloque de Proyección
             st.subheader(" ¿Qué pasaría si ahorras un 20% más?")
             col_a, col_b = st.columns(2)
             col_a.metric("Ahorro Actual", f"${monto_ahorro}")
@@ -292,7 +283,6 @@ elif st.session_state.pagina == 'formulario_inicial':
             st.write(f"Si haces este ajuste, en **6 meses** habrás acumulado **${total_6_meses:,.2f}**. "
                      f"Esto sería clave para tu meta de: *{meta_ahorro if meta_ahorro else 'tu futuro'}*.")
 
-            # --- 3. GRÁFICA  ---
             datos_pie = {
                 "Concepto": list(gastos_estimados.keys()) + ["Ahorro", "Libre"],
                 "Monto": list(gastos_estimados.values()) + [monto_ahorro, max(0, balance_disponible)]
@@ -301,7 +291,6 @@ elif st.session_state.pagina == 'formulario_inicial':
                          color_discrete_sequence=px.colors.qualitative.Pastel)
             st.plotly_chart(fig, use_container_width=True)
 
-            # --- 4. DIAGNÓSTICO DE MEJORA ---
             st.subheader("Diagnóstico y Mejora")
             porcentaje_fijos = (total_gastos_fijos / monto_ingreso) * 100
 
@@ -310,27 +299,21 @@ elif st.session_state.pagina == 'formulario_inicial':
                 st.write(" **Mejora:** Podrías invertir ese excedente en un fondo de inversión o adelantar pagos de deudas si las tienes.")
             elif 50 < porcentaje_fijos <= 80:
                 st.warning("**Situación: Estable pero en riesgo.**")
-                # Buscamos la categoría donde más gasta para darle el consejo
                 cat_mayor = max(gastos_estimados, key=gastos_estimados.get) if gastos_estimados else "N/A"
                 st.write(f"**Mejora:** Intenta reducir un 10% en **{cat_mayor}**. Eso liberará flujo de caja para tus ahorros.")
             else:
                 st.error("**Situación: Crítica.** Estás viviendo al límite.")
                 st.write(" **Mejora:** Es urgente recortar suscripciones o gastos variables. Tu prioridad debe ser bajar tus gastos fijos al 70%.")
 
-           # --- 5. SEGURIDAD PARA EL ANÁLISIS (Sigue dentro del botón) ---
             st.session_state['analisis_listo'] = True
             st.session_state['datos_pd'] = presupuesto_diario
             st.session_state['datos_nombre'] = nombre_real
-            # Guardamos las categorías en una lista limpia
             st.session_state['mis_categorias'] = list(gastos_estimados.keys())
 
-        # --- 6. MOSTRAR OBJETIVOS (ESTE VA FUERA DEL BOTÓN, ALINEADO AL DIVIDER) ---
-        # Fíjate que este 'if' está a la misma altura que el 'st.divider()' de la línea 295
     if st.session_state.get('analisis_listo'):
         st.divider()
         st.subheader(" Define tu Estrategia")
         
-        # OJO: Cambié el nombre del key a 'seleccion_estrategia' para que no choque
         estrategia = st.selectbox(
             "¿Cómo quieres que Ledgerly te ayude?",
             ["Solo registrar gastos (Control)", 
@@ -339,7 +322,6 @@ elif st.session_state.pagina == 'formulario_inicial':
         )
 
         if st.button("Confirmar e Iniciar"):
-            # Pasamos los datos temporales al perfil oficial
             st.session_state.perfil_completo = {
                 "nombre": st.session_state['datos_nombre'],
                 "pd": st.session_state['datos_pd'],
@@ -349,31 +331,27 @@ elif st.session_state.pagina == 'formulario_inicial':
             if estrategia == "Ayuda para no quedarme sin dinero (Supervivencia)":
                 st.session_state.pagina = 'config_supervivencia'
             else:
-                st.session_state.pagina = 'dashboard'
+                st.session_state.pagina = 'ciclo_diario'
             st.rerun()
 
+# --- PÁGINA: CONFIGURACIÓN ESTRATEGIA SUPERVIVENCIA ---
 elif st.session_state.pagina == 'config_supervivencia':
     st.title(" Configura tu Escudo")
     
-    # Aquí usamos la lista segura que guardamos arriba
     cats_viejas = st.session_state.get('mis_categorias', ["Comida", "Transporte", "Hogar"])
-    
     seleccion = []
     st.write("Selecciona tus **NECESIDADES**:")
     
     c1, c2 = st.columns(2)
     for i, c in enumerate(cats_viejas):
         with c1 if i % 2 == 0 else c2:
-            # Usamos un key único para que no haya errores de duplicados
             if st.checkbox(c, key=f"v_check_{c}"):
                 seleccion.append(c)
                 
     if st.button("INICIAR CICLO"):
-        # 1. Validación: Si no seleccionó nada, le avisamos y no lo dejamos pasar
         if not seleccion:
             st.error("Debes marcar al menos una categoría como necesidad.")
         else:
-            # 2. Si sí seleccionó, guardamos todo
             st.session_state.lista_blanca = seleccion
             st.session_state.gastos_dia = 0.0
             st.session_state.hormigas_dia = 0.0
@@ -387,35 +365,29 @@ elif st.session_state.pagina == 'config_supervivencia':
                 "hormigas_dia": 0.0
             }
             
-            # 3. Guardamos el archivo físico y cambiamos de página
-            guardar_perfil(datos_a_guardar)
+            # CORRECCIÓN: Ahora pasamos el nombre de usuario de la sesión para crear su archivo JSON individual
+            guardar_perfil(st.session_state.usuario_actual, datos_a_guardar)
             st.session_state.pagina = 'ciclo_diario'
             st.rerun()
 
+# --- PÁGINA: CICLO DIARIO ---
 elif st.session_state.pagina == 'ciclo_diario':
     info = st.session_state.perfil_completo
     st.header(f"¡Hola, {info['nombre']}! ")
     
-    # --- COPIA DESDE AQUÍ ---
-    # 1. Definimos las opciones (incluyendo la manual de Hormiga)
     opciones_gasto = [" Gasto Hormiga (Ninguna)"] + st.session_state.get('mis_categorias', [])
 
-    # 2. LAS MÉTRICAS QUE SEPARAN LOS GASTOS (Lo que se borró)
     c1, c2 = st.columns(2)
     c1.metric("Gasto Total", f"${st.session_state.gastos_dia:,.2f}")
-    
-    # El delta ayuda a ver cuánto ha subido el gasto hormiga
     c2.metric("Gastos Hormiga ", f"${st.session_state.hormigas_dia:,.2f}", 
               delta=f"+${st.session_state.hormigas_dia:,.2f}" if st.session_state.hormigas_dia > 0 else None,
               delta_color="inverse")
     
     st.divider() 
-    # --- HASTA AQUÍ ---
 
     with st.container(border=True):
         st.write("### Registrar Gasto")
         concepto = st.text_input("¿En qué gastaste?")
-        # 2. Usamos la nueva lista de opciones
         cat_reg = st.selectbox("Categoría", opciones_gasto)
         monto = st.number_input("Monto ($)", min_value=0.0)
 
@@ -423,8 +395,6 @@ elif st.session_state.pagina == 'ciclo_diario':
         if monto > 0:
             st.session_state.gastos_dia += monto
             
-            # 3. LÓGICA DE SEPARACIÓN MEJORADA
-            # Si elige la opción de "Ninguna" O la categoría NO está en la lista blanca
             es_hormiga = (cat_reg == " Gasto Hormiga (Ninguna)") or (cat_reg not in st.session_state.get('lista_blanca', []))
             
             if es_hormiga:
@@ -432,5 +402,10 @@ elif st.session_state.pagina == 'ciclo_diario':
                 st.warning(f"¡Hormiga detectada! Has gastado ${monto} en algo no vital.")
             else:
                 st.success(f"Gasto necesario en '{cat_reg}' registrado.")
+            
+            # CORRECCIÓN: Guardamos los gastos actualizados en el archivo JSON del usuario para que no se borren
+            st.session_state.perfil_completo['gastos_dia'] = st.session_state.gastos_dia
+            st.session_state.perfil_completo['hormigas_dia'] = st.session_state.hormigas_dia
+            guardar_perfil(st.session_state.usuario_actual, st.session_state.perfil_completo)
             
             st.rerun()
