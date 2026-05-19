@@ -316,8 +316,10 @@ elif st.session_state.pagina == 'formulario_inicial':
         
         estrategia = st.selectbox(
             "¿Cómo quieres que Ledgerly te ayude?",
-            ["Solo registrar gastos (Control)", 
-             "Ayuda para no quedarme sin dinero (Supervivencia)"],
+            ["Solo registrar gastos (control)", 
+             "Ayuda para no quedarme sin dinero (Supervivencia)",
+             "Mejorar mi salud financiera (Caza-Hormigas)",
+             "Alcanzar una meta de ahorro (Meta Ahorro)"], # La nueva estrella
             key="seleccion_estrategia"
         )
 
@@ -328,12 +330,16 @@ elif st.session_state.pagina == 'formulario_inicial':
                 "estrategia": estrategia
             }
             
+            # Enrutador de páginas
             if estrategia == "Ayuda para no quedarme sin dinero (Supervivencia)":
                 st.session_state.pagina = 'config_supervivencia'
+            elif estrategia == "Mejorar mi salud financiera (Caza-Hormigas)":
+                st.session_state.pagina = 'config_salud'
+            elif estrategia == "Alcanzar una meta de ahorro (Meta Ahorro)":
+                st.session_state.pagina = 'config_metas' # Nos manda a la configuración de la meta
             else:
                 st.session_state.pagina = 'ciclo_diario'
             st.rerun()
-
 # --- PÁGINA: CONFIGURACIÓN ESTRATEGIA SUPERVIVENCIA ---
 elif st.session_state.pagina == 'config_supervivencia':
     st.title(" Configura tu Escudo")
@@ -369,7 +375,49 @@ elif st.session_state.pagina == 'config_supervivencia':
             guardar_perfil(st.session_state.usuario_actual, datos_a_guardar)
             st.session_state.pagina = 'ciclo_diario'
             st.rerun()
-
+# --- PÁGINA: CONFIGURACIÓN META DE AHORRO ---
+elif st.session_state.pagina == 'config_metas':
+    st.title(" Configura tu Plan de Ahorro")
+    
+    # Recuperamos el ingreso mensual que ya conoce la app
+    ingreso_mensual = float(st.session_state.perfil_completo.get('pd', 0.0))
+    st.info(f"Tu ingreso mensual registrado es de: ${ingreso_mensual:,.2f}")
+    
+    nombre_meta = st.text_input("¿Para qué estás ahorrando?", placeholder="Ej. Una nueva consola, un viaje...")
+    monto_meta = st.number_input("¿Cuánto dinero necesitas juntar en total? ($)", min_value=0.0, step=100.0)
+    
+    meses_plazo = st.slider("¿En cuántos meses quieres tener el dinero?", min_value=1, max_value=12, value=3)
+    porcentaje_ahorro = st.slider("¿Qué porcentaje de tu ingreso quieres destinar a ahorrar? (%)", min_value=5, max_value=90, value=20)
+    
+    if st.button("INICIAR MI PLAN DE AHORRO "):
+        if nombre_meta and monto_meta > 0:
+            ahorro_mensual_pensado = ingreso_mensual * (porcentaje_ahorro / 100)
+            limite_gastos_mensual = ingreso_mensual - ahorro_mensual_pensado
+            limite_gastos_diario = limite_gastos_mensual / 30.0
+            
+            datos_a_guardar = {
+                "nombre": st.session_state.perfil_completo['nombre'],
+                "pd": ingreso_mensual,
+                "estrategia": st.session_state.perfil_completo['estrategia'],
+                "mis_categorias": st.session_state.get('mis_categorias', []),
+                "meta_nombre": nombre_meta,
+                "meta_monto_total": monto_meta,
+                "meta_meses": meses_plazo,
+                "meta_porcentaje": porcentaje_ahorro,
+                "meta_ahorrado": 0.0,
+                "limite_gastos_diario": limite_gastos_diario,
+                "gastos_acumulados_semana": 0.0,
+                "dias_transcurridos": 0,
+                "historial_gastos_meta": []
+            }
+            
+            guardar_perfil(st.session_state.usuario_actual, datos_a_guardar)
+            st.session_state.perfil_completo.update(datos_a_guardar)
+            
+            st.session_state.pagina = 'ciclo_metas'
+            st.rerun()
+        else:
+            st.error("Por favor, llena los campos obligatorios para trazar tu estrategia.")
 # --- PÁGINA: CICLO DIARIO ---
 elif st.session_state.pagina == 'ciclo_diario':
     info = st.session_state.perfil_completo
@@ -409,3 +457,82 @@ elif st.session_state.pagina == 'ciclo_diario':
             guardar_perfil(st.session_state.usuario_actual, st.session_state.perfil_completo)
             
             st.rerun()
+# --- PÁGINA: CICLO META DE AHORRO (DIARIO) ---
+elif st.session_state.pagina == 'ciclo_metas':
+    info = st.session_state.perfil_completo
+    
+    st.header(f" Plan: {info.get('meta_nombre', 'Mi Meta')}")
+    
+    limite_diario = info.get('limite_gastos_diario', 100.0)
+    dias = info.get('dias_transcurridos', 0)
+    gasto_semana = info.get('gastos_acumulados_semana', 0.0)
+    historial = info.get('historial_gastos_meta', [])
+    
+    st.subheader(" Registro del Día")
+    gasto_hoy = st.number_input("¿Cuánto gastaste el día de hoy? ($)", min_value=0.0, step=10.0)
+    
+    if gasto_hoy == 0:
+        color_semaforo = "normal"
+        mensaje_S = "¡Día limpio! No has registrado gastos hoy."
+    elif gasto_hoy <= limite_diario * 0.7:
+        color_semaforo = "normal"
+        mensaje_S = "¡Excelente! Vas muy por debajo de tu límite diario."
+    elif gasto_hoy <= limite_diario:
+        color_semaforo = "off"
+        mensaje_S = " ¡Cuidado! Estás rozando tu límite diario permitido."
+    else:
+        color_semaforo = "inverse"
+        mensaje_S = " ¡Alerta! Te pasaste de tu límite diario. Esto afecta tu meta."
+
+    st.metric(
+        label=f"Tu límite diario ideal es: ${limite_diario:,.2f}", 
+        value=f"${gasto_hoy:,.2f} gastados hoy", 
+        delta=mensaje_S, 
+        delta_color=color_semaforo
+    )
+
+    st.divider()
+
+    if st.button("Terminar y Guardar Día"):
+        dias += 1
+        gasto_semana += gasto_hoy
+        if gasto_hoy > 0:
+            historial.append({"dia": f"Día {dias}", "monto": gasto_hoy})
+            
+        ahorro_generado_hoy = max(0.0, limite_diario - gasto_hoy)
+        info['meta_ahorrado'] = info.get('meta_ahorrado', 0.0) + ahorro_generado_hoy
+        
+        info['dias_transcurridos'] = dias
+        info['gastos_acumulados_semana'] = gasto_semana
+        info['historial_gastos_meta'] = historial
+        
+        guardar_perfil(st.session_state.usuario_actual, info)
+        st.success("Día registrado con éxito.")
+        st.rerun()
+
+    if dias >= 7:
+        st.subheader(" ¡Tu Informe Semanal está listo!")
+        with st.container(border=True):
+            st.write("### Resumen de la Semana")
+            st.write(f"Gastaste un total de **${gasto_semana:,.2f}** en los últimos 7 días.")
+            
+            limite_semanal = limite_diario * 7
+            if gasto_semana <= limite_semanal:
+                st.balloons()
+                st.success(f" ¡Impresionante! Lograste mantenerte bajo tu presupuesto semanal. Tu meta para '{info.get('meta_nombre', '')}' va por excelente camino.")
+            else:
+                st.warning(f"Esta semana te pasaste por ${gasto_semana - limite_semanal:,.2f}. ¡No te desanimes! La próxima semana puedes recortar pequeños antojos.")
+            
+            if st.button("Iniciar Siguiente Semana "):
+                info['dias_transcurridos'] = 0
+                info['gastos_acumulados_semana'] = 0.0
+                guardar_perfil(st.session_state.usuario_actual, info)
+                st.rerun()
+
+    st.divider()
+
+    st.subheader(" Historial de gastos de este ciclo")
+    if historial:
+        st.table(historial)
+    else:
+        st.info("Aún no hay gastos registrados en este ciclo.")
