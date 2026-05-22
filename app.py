@@ -316,8 +316,7 @@ elif st.session_state.pagina == 'formulario_inicial':
         
         estrategia = st.selectbox(
             "¿Cómo quieres que Ledgerly te ayude?",
-            ["Solo registrar gastos (control)", 
-             "Ayuda para no quedarme sin dinero (Supervivencia)",
+            [ "Ayuda para no quedarme sin dinero (Supervivencia)",
              "Mejorar mi salud financiera (Caza-Hormigas)",
              "Alcanzar una meta de ahorro (Meta Ahorro)"], # La nueva estrella
             key="seleccion_estrategia"
@@ -536,3 +535,86 @@ elif st.session_state.pagina == 'ciclo_metas':
         st.table(historial)
     else:
         st.info("Aún no hay gastos registrados en este ciclo.")
+# --- PÁGINA: CONFIGURACIÓN SALUD FINANCIERA (CAZA-HORMIGAS) ---
+elif st.session_state.pagina == 'config_salud':
+    st.title(" Modo: Mejorar Salud Financiera")
+    st.write("Este modo analizará tus gastos diarios en tiempo real y los comparará con tu perfil de ingresos para ayudarte a cazar esos pequeños fugas de dinero.")
+    
+    if st.button("¡COMENZAR ANÁLISIS DIARIO! "):
+        datos_a_guardar = {
+            "nombre": st.session_state.perfil_completo['nombre'],
+            "pd": float(st.session_state.perfil_completo['pd']),
+            "estrategia": st.session_state.perfil_completo['estrategia'],
+            "mis_categorias": st.session_state.get('mis_categorias', []),
+            "historial_salud_gastos": [],
+            "gasto_total_salud": 0.0
+        }
+        
+        guardar_perfil(st.session_state.usuario_actual, datos_a_guardar)
+        st.session_state.perfil_completo.update(datos_a_guardar)
+        
+        st.session_state.pagina = 'ciclo_salud'
+        st.rerun()
+# --- PÁGINA: CICLO SALUD FINANCIERA (DIARIO) ---
+elif st.session_state.pagina == 'ciclo_salud':
+    info = st.session_state.perfil_completo
+    st.header(" Seguimiento de Salud Financiera")
+    
+    ingreso_mensual = info.get('pd', 1.0)
+    historial = info.get('historial_salud_gastos', [])
+    gasto_total = info.get('gasto_total_salud', 0.0)
+    
+    # 1. Formulario para registrar el gasto
+    with st.container(border=True):
+        st.write("###  Registrar nuevo gasto")
+        concepto = st.text_input("¿En qué gastaste?", placeholder="Ej. Café, Transporte, Cine...")
+        monto = st.number_input("Monto ($)", min_value=0.0, step=5.0)
+        
+        if st.button("Guardar Gasto "):
+            if concepto and monto > 0:
+                # Añadir al historial
+                historial.append({"Concepto": concepto, "Monto ($)": monto})
+                gasto_total += monto
+                
+                # Actualizar sesión y JSON
+                info['historial_salud_gastos'] = historial
+                info['gasto_total_salud'] = gasto_total
+                guardar_perfil(st.session_state.usuario_actual, info)
+                
+                st.success(f"Gasto '{concepto}' por ${monto} registrado.")
+                st.rerun()
+            else:
+                st.error("Escribe un concepto y un monto válido.")
+
+    st.divider()
+    
+    # 2. Botón de Análisis Financiero
+    st.subheader(" Diagnóstico en Tiempo Real")
+    if st.button(" ANALIZAR MI SITUACIÓN ACTUAL"):
+        # Calculamos qué porcentaje del ingreso total representa lo que ha gastado
+        porcentaje_gastado = (gasto_total / ingreso_mensual) * 100
+        
+        with st.container(border=True):
+            st.write(f"###  Reporte para {info['nombre']}")
+            st.write(f"Hasta el momento has gastado un total de **${gasto_total:,.2f}**.")
+            st.write(f"Esto equivale al **{porcentaje_gastado:.1f}%** de tu ingreso mensual disponible (${ingreso_mensual:,.2f}).")
+            
+            # Alertas basadas en el análisis de salud financiera
+            if porcentaje_gastado <= 10:
+                st.success(" ¡Tu salud financiera es excelente! Llevas un ritmo de gasto súper controlado. Sigue así y tendrás una gran capacidad de ahorro este mes.")
+            elif porcentaje_gastado <= 40:
+                st.info(" Vas en un rango saludable. Tus gastos están estables, pero mantén un ojo en las categorías secundarias para que no se conviertan en gastos hormiga.")
+            elif porcentaje_gastado <= 70:
+                st.warning(" ¡Atención! Estás entrando en zona de riesgo. Has consumido una parte importante de tus ingresos. Te sugerimos frenar compras que no sean de primera necesidad.")
+            else:
+                st.error(" ¡Alerta Crítica! Tus gastos han superado la zona segura respecto a tus ingresos. Es momento de recortar todo gasto hormiga de inmediato para evitar deudas.")
+
+    st.divider()
+    
+    # 3. Tabla dinámica de gastos al final
+    st.subheader(" Lista de gastos registrados")
+    if historial:
+        st.table(historial)
+        st.metric("Total Acumulado", f"${gasto_total:,.2f}")
+    else:
+        st.info("Aún no hay gastos registrados en este ciclo. ¡Ingresa tu primer gasto arriba!")
