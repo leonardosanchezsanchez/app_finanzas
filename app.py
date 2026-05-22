@@ -25,6 +25,36 @@ def guardar_perfil(nombre_usuario, datos):
     with open(archivo, 'w') as f:
         json.dump(datos, f)
 
+def mostrar_menu_perfil():
+    # Solo mostramos el menú si el usuario ya inició sesión y tenemos sus datos cargados
+    if 'perfil_completo' in st.session_state and st.session_state.perfil_completo:
+        info = st.session_state.perfil_completo
+        
+        # Creamos una sección desplegable en la barra lateral de la izquierda
+        with st.sidebar.expander(" Mi Perfil Ledgerly", expanded=False):
+            st.write(f"**Usuario:** {st.session_state.get('usuario_actual', 'No detectado')}")
+            
+            # Recuperamos la contraseña desde la sesión (asumiendo que la guardas ahí al iniciar sesión)
+            pass_usuario = st.session_state.get('datos_password', '******')
+            st.write(f"**Contraseña:** `{pass_usuario}`")
+            
+            st.divider()
+            
+            # Mostramos sus datos financieros
+            ingreso = info.get('pd', 0.0)
+            st.write(f"**Ingreso Mensual:** ${ingreso:,.2f}")
+            
+            # Limpiamos el texto de la estrategia para que no salga todo el nombre largo del selectbox
+            estrategia_limpia = info.get('estrategia', 'No seleccionada').split('(')[0].strip()
+            st.write(f"**Modo Activo:** {estrategia_limpia}")
+            
+            st.divider()
+            
+            # Un botón extra por si quiere salir y cerrar sesión
+            if st.button("Cerrar Sesión ", key="btn_logout_sidebar"):
+                st.session_state.clear()
+                st.rerun()
+
 # --- CONTROL DE NAVEGACIÓN INICIAL ---
 if 'pagina' not in st.session_state:
     st.session_state.pagina = 'inicio'
@@ -341,6 +371,7 @@ elif st.session_state.pagina == 'formulario_inicial':
             st.rerun()
 # --- PÁGINA: CONFIGURACIÓN ESTRATEGIA SUPERVIVENCIA ---
 elif st.session_state.pagina == 'config_supervivencia':
+    mostrar_menu_perfil()
     st.title(" Configura tu Escudo")
     
     cats_viejas = st.session_state.get('mis_categorias', ["Comida", "Transporte", "Hogar"])
@@ -458,6 +489,7 @@ elif st.session_state.pagina == 'ciclo_diario':
             st.rerun()
 # --- PÁGINA: CICLO META DE AHORRO (DIARIO) ---
 elif st.session_state.pagina == 'ciclo_metas':
+    mostrar_menu_perfil()
     info = st.session_state.perfil_completo
     
     st.header(f" Plan: {info.get('meta_nombre', 'Mi Meta')}")
@@ -557,6 +589,7 @@ elif st.session_state.pagina == 'config_salud':
         st.rerun()
 # --- PÁGINA: CICLO SALUD FINANCIERA (DIARIO) ---
 elif st.session_state.pagina == 'ciclo_salud':
+    mostrar_menu_perfil()
     info = st.session_state.perfil_completo
     st.header(" Seguimiento de Salud Financiera")
     
